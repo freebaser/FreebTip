@@ -1,0 +1,7 @@
+## Interface: 30000
+## Title: FreebTip
+## Notes: Custom Tooltip
+## Version: 1.0
+## Author: Freebaser
+
+FreebTip.lua
