@@ -257,7 +257,7 @@ GameTooltipStatusBar:SetHeight(7)
 local Tooltips = {GameTooltip, ItemRefTooltip, ShoppingTooltip1, ShoppingTooltip2, ShoppingTooltip3}
 for i, v in ipairs(Tooltips) do
 	v:SetBackdrop(backdrop)
-	v:SetScale(scale)	
+	v:SetScale(scale)
 	v:SetScript("OnShow", function(self)
 		self:SetBackdropColor(bdcR, bdcG, bdcB)
 		local name, item = self:GetItem()
@@ -274,7 +274,8 @@ for i, v in ipairs(Tooltips) do
 end
 
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
-	if cursor then
+	local frame = GetMouseFocus()
+	if cursor and frame == WorldFrame then
 		tooltip:SetOwner(parent, "ANCHOR_CURSOR")
 	else
 		tooltip:SetOwner(parent, "ANCHOR_NONE")	
