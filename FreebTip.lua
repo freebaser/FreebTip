@@ -10,17 +10,18 @@ local cursor = false
 local playerTitles = false
 local texture = "Interface\\AddOns\\FreebTip\\media\\texture" --Health Bar
 local backdrop = {
-		bgFile = "Interface\\AddOns\\FreebTip\\media\\backdrop",
+		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 		--bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-		edgeFile = "Interface\\AddOns\\FreebTip\\media\\border",
-		--edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		--edgeFile = "Interface\\AddOns\\FreebTip\\media\\border",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = true,
 		tileSize = 16,
-		edgeSize = 14,
-		insets = {left = -1, right = -1, top = -1, bottom = -1},
+		edgeSize = 16,
+		insets = {left = 3, right = 3, top = 3, bottom = 3},
 }
-local bdcR, bdcG, bdcB = .15, .15, .15	--Background color
-local bdbcR, bdbcG, bdbcB = 1, 1, 1	--Border color
-local gColorR, gColorG, gColorB = 0, .4, .9	--Guild Color
+local bdcR, bdcG, bdcB = .05, .05, .05	--Background color
+local bdbcR, bdbcG, bdbcB = .3, .3, .3	--Border color
+local gColorR, gColorG, gColorB = 255/255, 20/255, 147/255	--Guild Color
 local TARGET = "|cfffed100"..TARGET..":|r "
 local TARGETYOU = "|cffff0000YOU!!!|r"
 local worldBoss = "??"
@@ -60,7 +61,7 @@ end
 
 local function ShowTargets(GameTooltip, unit)
 	if UnitExists(unit) and UnitExists(unit.."target") then
-		local lines = GameTooltip:NumLines()
+		local lines = GameTooltip:NumLines() + 1
 		for i = 1, lines do
 			local line = _G["GameTooltipTextLeft"..i]
 			local text = ("%s%s"):format(TARGET, getTargetLine(unit.."target"))
@@ -196,7 +197,7 @@ local unit = select(2, self:GetUnit())
 						end
 					elseif class == "rare" then
 						if level == -1 then
-							textLevel = ("|cffff0000??+|r %s"):format(rare)
+							textLevel = ("|cffff0000??|r %s"):format(rare)
 						else
 							textLevel = ("%s%d|r %s"):format(GetHexColor(color), level, rare)
 						end
@@ -214,6 +215,9 @@ local unit = select(2, self:GetUnit())
 		end
   end
 end)
+
+GameTooltipStatusBar:SetHeight(7)
+GameTooltipStatusBar:SetStatusBarTexture(texture)
 
 local function ShortValue(value)
 	if value >= 1e7 then
@@ -243,16 +247,15 @@ GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
 		min, max = UnitHealth(unit), UnitHealthMax(unit)
 		if not self.text then
 			self.text = self:CreateFontString(nil, "OVERLAY")
-			self.text:SetPoint("CENTER", GameTooltipStatusBar, 0, -1)
-			self.text:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+			self.text:SetPoint("CENTER", GameTooltipStatusBar)
+			self.text:SetFont("Fonts\\FRIZQT__.TTF", 11, "THINOUTLINE")
+			--self.text:SetShadowOffset(1.25, -1.25)
 		end
 		self.text:Show()
 		local hp = ShortValue(min).." / "..ShortValue(max)
 		self.text:SetText(hp)
 	end
 end)
-GameTooltipStatusBar:SetStatusBarTexture(texture)
-GameTooltipStatusBar:SetHeight(7)
 
 local Tooltips = {GameTooltip, ItemRefTooltip, ShoppingTooltip1, ShoppingTooltip2, ShoppingTooltip3}
 for i, v in ipairs(Tooltips) do
