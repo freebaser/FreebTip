@@ -23,7 +23,7 @@ local bdcR, bdcG, bdcB = .05, .05, .05	--Background color
 local bdbcR, bdbcG, bdbcB = .3, .3, .3	--Border color
 local gColorR, gColorG, gColorB = 255/255, 20/255, 200/255	--Guild Color
 local TARGET = "|cfffed100"..TARGET..":|r "
-local TARGETYOU = "|cffff0000YOU!!!|r"
+local TARGETYOU = "<You>"
 local worldBoss = "??"
 local rareElite = "Rare+"
 local rare = "Rare"
@@ -47,7 +47,7 @@ end
 
 local function getTargetLine(unit)
 	if UnitIsUnit(unit, "player") then
-		return ("|cffffffff%s|r"):format(TARGETYOU)
+		return ("|cffff0000%s|r"):format(TARGETYOU)
 	elseif UnitIsPlayer(unit, "player")then
 		return ClassColors[select(2, UnitClass(unit, "player"))]..UnitName(unit).."|r"
 	elseif UnitReaction(unit, "player") then
@@ -106,7 +106,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 local unit = select(2, self:GetUnit())
   if unit then
 	local level = UnitLevel(unit)
-	local color = GetDifficultyColor(level)
+	local color = GetQuestDifficultyColor(level)
 	local textLevel = ("%s%d|r"):format(GetHexColor(color), level)
 	local unitPvP = ""
 	local pattern = "%s"
@@ -186,14 +186,9 @@ local unit = select(2, self:GetUnit())
 					break
 				end
 			end
-                	if (UnitIsPVPFreeForAll(unit)) then
-                   		 _G["GameTooltipTextLeft1"]:SetText("|cffFF0000# |r"..GameTooltipTextLeft1:GetText())
-               	 	elseif (UnitIsPVP(unit)) then
-                   		 _G["GameTooltipTextLeft1"]:SetText("|cff00FF00# |r"..GameTooltipTextLeft1:GetText())
-               		end
 	end
 
-	if ( UnitExists(unit .. "target") ) then
+	if (UnitExists(unit .. "target")) then
 		local text = ("%s%s"):format(TARGET, getTargetLine(unit.."target"))
 		GameTooltip:AddLine(text)	
 	end
@@ -204,20 +199,18 @@ local unit = select(2, self:GetUnit())
             self:AddLine(" ")
             GameTooltipStatusBar:Show()
             GameTooltipStatusBar:ClearAllPoints()
-            GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -2)
-            GameTooltipStatusBar:SetPoint("RIGHT", self, "RIGHT", -10, -2)
+            GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -1)
+            GameTooltipStatusBar:SetPoint("RIGHT", self, "RIGHT", -10, -1)
         end
   end
 end)
 
 GameTooltipStatusBar:SetStatusBarTexture(texture)
 GameTooltipStatusBar:SetHeight(7)
-
-GameTooltip:HookScript("OnTooltipCleared", function(self)
-   	GameTooltipStatusBar:ClearAllPoints()
-    	GameTooltipStatusBar:SetPoint("TOPLEFT", GameTooltip, "BOTTOMLEFT", 3, -2)
-    	GameTooltipStatusBar:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT", -3, -2)
-end)
+local bg = GameTooltipStatusBar:CreateTexture(nil, "BACKGROUND")
+bg:SetAllPoints(GameTooltipStatusBar)
+bg:SetTexture(texture)
+bg:SetVertexColor(0.5, 0.5, 0.5, 0.5)
 
 local function ShortValue(value)
 	if value >= 1e7 then
