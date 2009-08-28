@@ -9,6 +9,7 @@ local ypoint = 215
 local cursor = false
 local playerTitles = false
 local texture = "Interface\\AddOns\\FreebTip\\media\\texture" --Health Bar
+local colorStatusBar = true
 local backdrop = {
 		bgFile = "Interface\\Buttons\\WHITE8x8",
 		--bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -101,12 +102,12 @@ function GameTooltip_UnitColor(unit)
 	return r, g, b
 end
 
-
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 local unit = select(2, self:GetUnit())
   if unit then
 	local level = UnitLevel(unit)
 	local color = GetQuestDifficultyColor(level)
+	local classColor = RAID_CLASS_COLORS[select(2,UnitClass(unit))]
 	local textLevel = ("%s%d|r"):format(GetHexColor(color), level)
 	local unitPvP = ""
 	local pattern = "%s"
@@ -137,11 +138,14 @@ local unit = select(2, self:GetUnit())
 			if unitGuild and text and text:find("^"..unitGuild) then	
 				GameTooltipTextLeft2:SetTextColor(gColorR, gColorG, gColorB)
 			end
-		else
+			if colorStatusBar then
+				GameTooltipStatusBar:SetStatusBarColor(classColor.r, classColor.g, classColor.b)
+			end
+	else
 			local text = GameTooltipTextLeft2:GetText()
 			local reaction = UnitReaction(unit, "player")
 			if reaction and text and not text:find(LEVEL) then
-				GameTooltipTextLeft2:SetTextColor(FACTION_BAR_COLORS[reaction].r + .1, FACTION_BAR_COLORS[reaction].g + .1, FACTION_BAR_COLORS[reaction].b + .1)
+				GameTooltipTextLeft2:SetTextColor(FACTION_BAR_COLORS[reaction].r, FACTION_BAR_COLORS[reaction].g, FACTION_BAR_COLORS[reaction].b)
 			end
 			if level ~= 0 then
 				
@@ -177,7 +181,10 @@ local unit = select(2, self:GetUnit())
 					end
 				end
 			end
-		end
+			if colorStatusBar then
+				GameTooltipStatusBar:SetStatusBarColor(FACTION_BAR_COLORS[reaction].r, FACTION_BAR_COLORS[reaction].g, FACTION_BAR_COLORS[reaction].b)
+			end
+	end
 
 	if UnitIsPVP(unit) then
 			for i = 2, GameTooltip:NumLines() do
@@ -193,15 +200,16 @@ local unit = select(2, self:GetUnit())
 		GameTooltip:AddLine(text)	
 	end
 
+	
 	if (UnitIsDead(unit) or UnitIsGhost(unit)) then
             GameTooltipStatusBar:Hide()
         else
             self:AddLine(" ")
             GameTooltipStatusBar:Show()
             GameTooltipStatusBar:ClearAllPoints()
-            GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -1)
-            GameTooltipStatusBar:SetPoint("RIGHT", self, "RIGHT", -10, -1)
-        end
+            GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -2)
+            GameTooltipStatusBar:SetPoint("RIGHT", self, "RIGHT", -10, -2)
+	end
   end
 end)
 
