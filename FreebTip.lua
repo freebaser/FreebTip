@@ -107,7 +107,6 @@ local unit = select(2, self:GetUnit())
   if unit then
 	local level = UnitLevel(unit)
 	local color = GetQuestDifficultyColor(level)
-	local classColor = RAID_CLASS_COLORS[select(2,UnitClass(unit))]
 	local textLevel = ("%s%d|r"):format(GetHexColor(color), level)
 	local unitPvP = ""
 	local pattern = "%s"
@@ -137,9 +136,6 @@ local unit = select(2, self:GetUnit())
 			local text = GameTooltipTextLeft2:GetText()
 			if unitGuild and text and text:find("^"..unitGuild) then	
 				GameTooltipTextLeft2:SetTextColor(gColorR, gColorG, gColorB)
-			end
-			if colorStatusBar then
-				GameTooltipStatusBar:SetStatusBarColor(classColor.r, classColor.g, classColor.b)
 			end
 	else
 			local text = GameTooltipTextLeft2:GetText()
@@ -181,9 +177,6 @@ local unit = select(2, self:GetUnit())
 					end
 				end
 			end
-			if colorStatusBar then
-				GameTooltipStatusBar:SetStatusBarColor(FACTION_BAR_COLORS[reaction].r, FACTION_BAR_COLORS[reaction].g, FACTION_BAR_COLORS[reaction].b)
-			end
 	end
 
 	if UnitIsPVP(unit) then
@@ -199,7 +192,8 @@ local unit = select(2, self:GetUnit())
 		local text = ("%s%s"):format(TARGET, getTargetLine(unit.."target"))
 		GameTooltip:AddLine(text)	
 	end
-
+	local r, g, b = GameTooltip_UnitColor(unit)
+	GameTooltipStatusBar:SetStatusBarColor(r, g, b)
 	
 	if (UnitIsDead(unit) or UnitIsGhost(unit)) then
             GameTooltipStatusBar:Hide()
