@@ -204,8 +204,8 @@ local unit = select(2, self:GetUnit())
             self:AddLine(" ")
             GameTooltipStatusBar:Show()
             GameTooltipStatusBar:ClearAllPoints()
-            GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -2)
-            GameTooltipStatusBar:SetPoint("RIGHT", self, "RIGHT", -10, -2)
+            GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -1)
+            GameTooltipStatusBar:SetPoint("RIGHT", self, "RIGHT", -10, -1)
 	end
   end
 end)
@@ -241,13 +241,11 @@ GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
 	end
 	local unit  = select(2, GameTooltip:GetUnit())
 	if unit then
-		self:SetStatusBarColor(0, .9, .1)
 		min, max = UnitHealth(unit), UnitHealthMax(unit)
 		if not self.text then
 			self.text = self:CreateFontString(nil, "OVERLAY")
 			self.text:SetPoint("CENTER", GameTooltipStatusBar)
 			self.text:SetFont("Fonts\\FRIZQT__.TTF", 11, "THINOUTLINE")
-			--self.text:SetShadowOffset(1, -1)
 		end
 		self.text:Show()
 		local hp = ShortValue(min).." / "..ShortValue(max)
