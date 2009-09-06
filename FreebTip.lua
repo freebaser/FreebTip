@@ -192,8 +192,11 @@ local unit = select(2, self:GetUnit())
 		local text = ("%s%s"):format(TARGET, getTargetLine(unit.."target"))
 		GameTooltip:AddLine(text)	
 	end
-	local r, g, b = GameTooltip_UnitColor(unit)
-	GameTooltipStatusBar:SetStatusBarColor(r, g, b)
+
+	if colorStatusBar then
+		local r, g, b = GameTooltip_UnitColor(unit)
+		GameTooltipStatusBar:SetStatusBarColor(r, g, b)
+	end
 	
 	if (UnitIsDead(unit) or UnitIsGhost(unit)) then
             GameTooltipStatusBar:Hide()
