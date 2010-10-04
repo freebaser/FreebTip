@@ -1,7 +1,7 @@
-## Interface: 30200
+## Interface: 30300
 ## Title: FreebTip
 ## Notes: Custom Game Tooltip
-## Version: 1.4.2
+## Version: 1.5
 ## Author: Freebaser
 
 tip.lua
