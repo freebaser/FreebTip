@@ -88,8 +88,8 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
         local unitGuild = GetGuildInfo(unit)
         local text2 = GameTooltipTextLeft2:GetText()
         if unitGuild and text2 and text2:find("^"..unitGuild) then	
-		    GameTooltipTextLeft2:SetTextColor(cfg.gcolor.r, cfg.gcolor.g, cfg.gcolor.b)
-		end
+            GameTooltipTextLeft2:SetTextColor(cfg.gcolor.r, cfg.gcolor.g, cfg.gcolor.b)
+        end
     end
 
     local level = UnitLevel(unit)
@@ -148,24 +148,24 @@ end
 
 GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
     if not value then
-		return
-	end
-	local min, max = self:GetMinMaxValues()
-	if (value < min) or (value > max) then
-		return
-	end
-	local _, unit = GameTooltip:GetUnit()
-	if unit then
-		min, max = UnitHealth(unit), UnitHealthMax(unit)
-		if not self.text then
-			self.text = self:CreateFontString(nil, "OVERLAY")
-			self.text:SetPoint("CENTER", GameTooltipStatusBar)
-			self.text:SetFont(cfg.font, 12, cfg.outline)
-		end
-		self.text:Show()
-		local hp = numberize(min).." / "..numberize(max)
-		self.text:SetText(hp)
-	end
+        return
+    end
+    local min, max = self:GetMinMaxValues()
+    if (value < min) or (value > max) then
+        return
+    end
+    local _, unit = GameTooltip:GetUnit()
+    if unit then
+        min, max = UnitHealth(unit), UnitHealthMax(unit)
+        if not self.text then
+            self.text = self:CreateFontString(nil, "OVERLAY")
+            self.text:SetPoint("CENTER", GameTooltipStatusBar)
+            self.text:SetFont(cfg.font, 12, cfg.outline)
+        end
+        self.text:Show()
+        local hp = numberize(min).." / "..numberize(max)
+        self.text:SetText(hp)
+    end
 end)
 
 local tooltips = {
@@ -177,26 +177,26 @@ local tooltips = {
 }
 
 for i, v in ipairs(tooltips) do
-	v:SetBackdrop(cfg.backdrop)
-	v:SetScale(cfg.scale)
-	v:SetScript("OnShow", function(self)
-		self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
-		local name, item = self:GetItem()
-		if(item) then
-			local quality = select(3, GetItemInfo(item))
-			if(quality) then
-				local r, g, b = GetItemQualityColor(quality)
-				self:SetBackdropBorderColor(r, g, b)
-			end
-		else
-			self:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
-		end
+    v:SetBackdrop(cfg.backdrop)
+    v:SetScale(cfg.scale)
+    v:SetScript("OnShow", function(self)
+        self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+        local name, item = self:GetItem()
+        if(item) then
+            local quality = select(3, GetItemInfo(item))
+            if(quality) then
+                local r, g, b = GetItemQualityColor(quality)
+                self:SetBackdropBorderColor(r, g, b)
+            end
+        else
+            self:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+        end
 
         for index=1, self:NumLines() do
             _G[self:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
             _G[self:GetName()..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
         end
-	end)
+    end)
 end
 
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
