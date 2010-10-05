@@ -72,14 +72,20 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
     if not unit then return end
 
     local color = unitColor(unit)
+    local ricon = GetRaidTargetIndex(unit)
+
+    if ricon then
+        local text = GameTooltipTextLeft1:GetText()
+        GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."22|t", text))
+    end
 
     if UnitIsPlayer(unit) then
         self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or not UnitIsConnected(unit) and "<DC>" or ""))
 
-        local text = GameTooltipTextLeft1:GetText()
         if not cfg.titles then
             local title = UnitPVPName(unit)
             if title then
+                local text = GameTooltipTextLeft1:GetText()
                 title = title:gsub(name, "")
                 text = text:gsub(title, "")
                 if text then GameTooltipTextLeft1:SetText(text) end
@@ -99,7 +105,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
         local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
         local diff = GetQuestDifficultyColor(level)
 
-        if level == -1 then level = "|cffff0000" end
+        if level == -1 then level = "|cffff0000"..classification["worldboss"] end
         local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[UnitClassification(unit)] or "")
 
         for i=2, self:NumLines() do
@@ -169,35 +175,46 @@ GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
     end
 end)
 
+local function style(frame)
+    frame:SetBackdrop(cfg.backdrop)
+    frame:SetScale(cfg.scale)
+    frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+    frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+
+    if frame.GetItem then
+        local _, item = frame:GetItem()
+        if item then
+            local quality = select(3, GetItemInfo(item))
+            if(quality) then
+                local r, g, b = GetItemQualityColor(quality)
+                frame:SetBackdropBorderColor(r, g, b)
+            end
+        else
+            frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+        end
+    end
+
+    if frame.NumLines then
+        for index=1, frame:NumLines() do
+            _G[frame:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+            _G[frame:GetName()..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+        end
+    end
+end
+
 local tooltips = {
     GameTooltip, 
     ItemRefTooltip, 
     ShoppingTooltip1, 
     ShoppingTooltip2, 
     ShoppingTooltip3,
+    WorldMapTooltip, 
+    DropDownList1MenuBackdrop, 
+    DropDownList2MenuBackdrop,
 }
 
-for i, v in ipairs(tooltips) do
-    v:SetBackdrop(cfg.backdrop)
-    v:SetScale(cfg.scale)
-    v:SetScript("OnShow", function(self)
-        self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
-        local name, item = self:GetItem()
-        if(item) then
-            local quality = select(3, GetItemInfo(item))
-            if(quality) then
-                local r, g, b = GetItemQualityColor(quality)
-                self:SetBackdropBorderColor(r, g, b)
-            end
-        else
-            self:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
-        end
-
-        for index=1, self:NumLines() do
-            _G[self:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-            _G[self:GetName()..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-        end
-    end)
+for i, frame in ipairs(tooltips) do
+    frame:SetScript("OnShow", function(frame) style(frame) end)
 end
 
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
@@ -210,3 +227,7 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
     end
     tooltip.default = 1
 end)
+
+if IsAddOnLoaded("ManyItemTooltips") then
+    MIT:AddHook("FreebTip", "OnShow", function(frame) style(frame) end)
+end
