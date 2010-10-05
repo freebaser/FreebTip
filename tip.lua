@@ -54,6 +54,11 @@ local function unitColor(unit)
     return color
 end
 
+function GameTooltip_UnitColor(unit)
+    local color = unitColor(unit)
+    return color.r, color.g, color.b
+end
+
 local function getTarget(unit)
     if UnitIsUnit(unit, "player") then
         return ("|cffff0000%s|r"):format(cfg.you)
@@ -72,10 +77,6 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
         self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or not UnitIsConnected(unit) and "<DC>" or ""))
 
         local text = GameTooltipTextLeft1:GetText()
-        if text then
-            GameTooltipTextLeft1:SetTextColor(color.r, color.g, color.b)
-        end
-
         if not cfg.titles then
             local title = UnitPVPName(unit)
             if title then
