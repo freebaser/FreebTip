@@ -69,72 +69,76 @@ end
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
     local name, unit = self:GetUnit()
-    if not unit then return end
+    if unit then
 
-    local color = unitColor(unit)
-    local ricon = GetRaidTargetIndex(unit)
+        local color = unitColor(unit)
+        local ricon = GetRaidTargetIndex(unit)
 
-    if ricon then
-        local text = GameTooltipTextLeft1:GetText()
-        GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."22|t", text))
-    end
+        if ricon then
+            local text = GameTooltipTextLeft1:GetText()
+            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."22|t", text))
+        end
 
-    if UnitIsPlayer(unit) then
-        self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or not UnitIsConnected(unit) and "<DC>" or ""))
+        if UnitIsPlayer(unit) then
+            self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or not UnitIsConnected(unit) and "<DC>" or ""))
 
-        if not cfg.titles then
-            local title = UnitPVPName(unit)
-            if title then
-                local text = GameTooltipTextLeft1:GetText()
-                title = title:gsub(name, "")
-                text = text:gsub(title, "")
-                if text then GameTooltipTextLeft1:SetText(text) end
+            if not cfg.titles then
+                local title = UnitPVPName(unit)
+                if title then
+                    local text = GameTooltipTextLeft1:GetText()
+                    title = title:gsub(name, "")
+                    text = text:gsub(title, "")
+                    if text then GameTooltipTextLeft1:SetText(text) end
+                end
+            end
+
+            local unitGuild = GetGuildInfo(unit)
+            local text2 = GameTooltipTextLeft2:GetText()
+            if unitGuild and text2 and text2:find("^"..unitGuild) then	
+                GameTooltipTextLeft2:SetTextColor(cfg.gcolor.r, cfg.gcolor.g, cfg.gcolor.b)
             end
         end
 
-        local unitGuild = GetGuildInfo(unit)
-        local text2 = GameTooltipTextLeft2:GetText()
-        if unitGuild and text2 and text2:find("^"..unitGuild) then	
-            GameTooltipTextLeft2:SetTextColor(cfg.gcolor.r, cfg.gcolor.g, cfg.gcolor.b)
-        end
-    end
+        local level = UnitLevel(unit)
+        if level then
+            local unitClass = UnitIsPlayer(unit) and hex(color)..UnitClass(unit).."|r" or ""
+            local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
+            local diff = GetQuestDifficultyColor(level)
 
-    local level = UnitLevel(unit)
-    if level then
-        local unitClass = UnitIsPlayer(unit) and hex(color)..UnitClass(unit).."|r" or ""
-        local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
-        local diff = GetQuestDifficultyColor(level)
+            if level == -1 then level = "|cffff0000" end
+            local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[UnitClassification(unit)] or "")
 
-        if level == -1 then level = "|cffff0000"..classification["worldboss"] end
-        local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[UnitClassification(unit)] or "")
+            for i=2, self:NumLines() do
+                local tiptext = _G["GameTooltipTextLeft"..i]
+                if tiptext:GetText():find(LEVEL) then
+                    tiptext:SetText(("%s %s%s %s"):format(textLevel, creature, UnitRace(unit) or "", unitClass):trim())
+                end
 
-        for i=2, self:NumLines() do
-            local tiptext = _G["GameTooltipTextLeft"..i]
-            if tiptext:GetText():find(LEVEL) then
-                tiptext:SetText(("%s %s%s %s"):format(textLevel, creature, UnitRace(unit) or "", unitClass):trim())
-            end
-
-            if tiptext:GetText():find(PVP) then
-                tiptext:SetText(nil)
+                if tiptext:GetText():find(PVP) then
+                    tiptext:SetText(nil)
+                end
             end
         end
-    end
 
-    if UnitExists(unit.."target") then
-        local tartext = ("%s: %s"):format(TARGET, getTarget(unit.."target"))
-        self:AddLine(tartext)
-    end
+        if UnitExists(unit.."target") then
+            local tartext = ("%s: %s"):format(TARGET, getTarget(unit.."target"))
+            self:AddLine(tartext)
+        end
 
-    GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
+        GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
 
-    if UnitIsDeadOrGhost(unit) then
-        GameTooltipStatusBar:Hide()
+        if UnitIsDeadOrGhost(unit) then
+            GameTooltipStatusBar:Hide()
+        end
     else
-        self:AddLine(" ")
-        GameTooltipStatusBar:ClearAllPoints()
-        GameTooltipStatusBar:SetPoint("TOPLEFT", self:GetName().."TextLeft"..self:NumLines(), "TOPLEFT", 0, -4)
-        GameTooltipStatusBar:SetPoint("TOPRIGHT", self, -10, 0)
+        GameTooltipStatusBar:SetStatusBarColor(0, .9, 0)
     end
+
+    self:AddLine(" ")
+    GameTooltipStatusBar:ClearAllPoints()
+    GameTooltipStatusBar:Show()
+    GameTooltipStatusBar:SetPoint("TOPLEFT", self:GetName().."TextLeft"..self:NumLines(), "TOPLEFT", 0, -4)
+    GameTooltipStatusBar:SetPoint("TOPRIGHT", self, -10, 0)
 end)
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.tex)
