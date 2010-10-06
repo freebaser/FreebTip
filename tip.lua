@@ -23,10 +23,10 @@ local cfg = {
 }
 
 local classification = {
-    elite = "+|r",
-    worldboss = "??|r",
-    rare = "R|r",
-    rareelite = "R+|r",
+    elite = "+",
+    worldboss = "??",
+    rare = "R",
+    rareelite = "R+",
 }
 
 local hex
@@ -105,8 +105,15 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
             local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
             local diff = GetQuestDifficultyColor(level)
 
-            if level == -1 then level = "|cffff0000" end
-            local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[UnitClassification(unit)] or "")
+            local classify = UnitClassification(unit)
+            if level == -1 then
+                if classify == "elite" then
+                    level = "|cffff0000"..classification["worldboss"]
+                else
+                    level = "|cffff0000"
+                end
+            end
+            local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[classify] or "")
 
             for i=2, self:NumLines() do
                 local tiptext = _G["GameTooltipTextLeft"..i]
@@ -129,16 +136,18 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
         if UnitIsDeadOrGhost(unit) then
             GameTooltipStatusBar:Hide()
+            self:AddLine("|cffFF0000"..DEAD.."|r")
         end
     else
         GameTooltipStatusBar:SetStatusBarColor(0, .9, 0)
     end
 
-    self:AddLine(" ")
-    GameTooltipStatusBar:ClearAllPoints()
-    GameTooltipStatusBar:Show()
-    GameTooltipStatusBar:SetPoint("TOPLEFT", self:GetName().."TextLeft"..self:NumLines(), "TOPLEFT", 0, -4)
-    GameTooltipStatusBar:SetPoint("TOPRIGHT", self, -10, 0)
+    if GameTooltipStatusBar:IsShown() then
+        self:AddLine(" ")
+        GameTooltipStatusBar:ClearAllPoints()
+        GameTooltipStatusBar:SetPoint("TOPLEFT", self:GetName().."TextLeft"..self:NumLines(), "TOPLEFT", 0, -4)
+        GameTooltipStatusBar:SetPoint("TOPRIGHT", self, -10, 0)
+    end
 end)
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.tex)
