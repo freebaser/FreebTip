@@ -1,8 +1,0 @@
-## Interface: 30300
-## Title: FreebTip
-## Notes: Custom Game Tooltip
-## Version: 1.5.2
-## Author: Freebaser
-## OptionalDeps: ManyItemTooltips
-
-tip.lua
