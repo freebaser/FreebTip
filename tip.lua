@@ -76,7 +76,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
         if ricon then
             local text = GameTooltipTextLeft1:GetText()
-            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."22|t", text))
+            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."16|t", text))
         end
 
         if UnitIsPlayer(unit) then
@@ -209,7 +209,11 @@ local function style(frame)
 
     if frame.NumLines then
         for index=1, frame:NumLines() do
-            _G[frame:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+            if index == 1 then
+                _G[frame:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
+            else
+                _G[frame:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+            end
             _G[frame:GetName()..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
         end
     end
