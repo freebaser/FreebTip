@@ -1,3 +1,5 @@
+local _, ns = ...
+
 local mediapath = "Interface\\AddOns\\FreebTip\\media\\"
 local cfg = {
     font = mediapath.."expressway.ttf",
@@ -11,7 +13,7 @@ local cfg = {
     backdrop = {
         bgFile = "Interface\\Buttons\\WHITE8x8",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
+        --tile = true,
         tileSize = 16,
         edgeSize = 16,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
@@ -20,13 +22,14 @@ local cfg = {
     bdrcolor = { r=0.3, g=0.3, b=0.3 },
     gcolor = { r=1, g=0.1, b=0.8 },
     you = "<You>",
+    boss = "??",
+    colorborderClass = false,
 }
 
 local classification = {
     elite = "+",
-    worldboss = "??",
-    rare = "R",
-    rareelite = "R+",
+    rare = " R",
+    rareelite = " R+",
 }
 
 local hex
@@ -76,7 +79,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
         if ricon then
             local text = GameTooltipTextLeft1:GetText()
-            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."16|t", text))
+            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."18|t", text))
         end
 
         if UnitIsPlayer(unit) then
@@ -105,14 +108,11 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
             local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
             local diff = GetQuestDifficultyColor(level)
 
-            local classify = UnitClassification(unit)
             if level == -1 then
-                if classify == "elite" then
-                    level = "|cffff0000"..classification["worldboss"]
-                else
-                    level = "|cffff0000"
-                end
+                level = "|cffff0000"..cfg.boss
             end
+
+            local classify = UnitClassification(unit)
             local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[classify] or "")
 
             for i=2, self:NumLines() do
@@ -188,9 +188,29 @@ GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
     end
 end)
 
-local function style(frame)
+hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
+    local frame = GetMouseFocus()
+    if cfg.cursor and frame == WorldFrame then
+        tooltip:SetOwner(parent, "ANCHOR_CURSOR")
+    else
+        tooltip:SetOwner(parent, "ANCHOR_NONE")	
+        tooltip:SetPoint(cfg.point[1], UIParent, cfg.point[2], cfg.point[3], cfg.point[4])
+    end
+    tooltip.default = 1
+end)
+
+local function setBakdrop(frame)
     frame:SetBackdrop(cfg.backdrop)
     frame:SetScale(cfg.scale)
+
+    frame.freebBak = true
+end
+
+local function style(frame)
+    if not frame.freebBak then
+        setBakdrop(frame)
+    end
+
     frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
     frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
 
@@ -207,6 +227,13 @@ local function style(frame)
         end
     end
 
+    if cfg.colorborderClass then
+        local _, unit = GameTooltip:GetUnit()
+        if UnitIsPlayer(unit) then
+            frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
+        end
+    end
+
     if frame.NumLines then
         for index=1, frame:NumLines() do
             if index == 1 then
@@ -220,12 +247,12 @@ local function style(frame)
 end
 
 local tooltips = {
-    GameTooltip, 
-    ItemRefTooltip, 
-    ShoppingTooltip1, 
+    GameTooltip,
+    ItemRefTooltip,
+    ShoppingTooltip1,
     ShoppingTooltip2, 
     ShoppingTooltip3,
-    WorldMapTooltip, 
+    WorldMapTooltip,
     DropDownList1MenuBackdrop, 
     DropDownList2MenuBackdrop,
 }
@@ -234,17 +261,20 @@ for i, frame in ipairs(tooltips) do
     frame:SetScript("OnShow", function(frame) style(frame) end)
 end
 
-hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
-    local frame = GetMouseFocus()
-    if cfg.cursor and frame == WorldFrame then
-        tooltip:SetOwner(parent, "ANCHOR_CURSOR")
-    else
-        tooltip:SetOwner(parent, "ANCHOR_NONE")	
-        tooltip:SetPoint(cfg.point[1], UIParent, cfg.point[2], cfg.point[3], cfg.point[4])
-    end
-    tooltip.default = 1
-end)
-
 if IsAddOnLoaded("ManyItemTooltips") then
     MIT:AddHook("FreebTip", "OnShow", function(frame) style(frame) end)
+end
+
+local f = CreateFrame"Frame"
+f:SetScript("OnEvent", function(self, event, ...) if ns[event] then return ns[event](ns, event, ...) end end)
+function ns:RegisterEvent(...) for i=1,select("#", ...) do f:RegisterEvent((select(i, ...))) end end
+function ns:UnregisterEvent(...) for i=1,select("#", ...) do f:UnregisterEvent((select(i, ...))) end end
+
+ns:RegisterEvent"PLAYER_LOGIN"
+function ns:PLAYER_LOGIN()
+    for i, frame in ipairs(tooltips) do
+        setBakdrop(frame)
+    end
+
+    ns:UnregisterEvent"PLAYER_LOGIN"
 end
