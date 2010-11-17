@@ -72,8 +72,8 @@ end
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
     local name, unit = self:GetUnit()
-    if unit then
 
+    if unit then
         local color = unitColor(unit)
         local ricon = GetRaidTargetIndex(unit)
 
@@ -118,7 +118,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
             for i=2, self:NumLines() do
                 local tiptext = _G["GameTooltipTextLeft"..i]
                 if tiptext:GetText():find(LEVEL) then
-                    tiptext:SetText(("%s %s%s %s"):format(textLevel, creature, UnitRace(unit) or "", unitClass):trim())
+                    tiptext:SetText(("%s %s%s %s%s"):format(textLevel, creature, UnitRace(unit) or "", unitClass, UnitIsDeadOrGhost(unit) and CORPSE or ""):trim())
                 end
 
                 if tiptext:GetText():find(PVP) then
@@ -133,12 +133,15 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
         end
 
         GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
-
-        if UnitIsDeadOrGhost(unit) then
-            GameTooltipStatusBar:Hide()
-            self:AddLine("|cffFF0000"..DEAD.."|r")
-        end
     else
+        for i=2, self:NumLines() do
+            local tiptext = _G["GameTooltipTextLeft"..i]
+
+            if tiptext:GetText():find(PVP) then
+                tiptext:SetText(nil)
+            end
+        end
+
         GameTooltipStatusBar:SetStatusBarColor(0, .9, 0)
     end
 
