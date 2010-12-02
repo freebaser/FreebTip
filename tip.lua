@@ -24,7 +24,7 @@ local cfg = {
     you = "<You>",
     boss = "??",
     colorborderClass = false,
-    combathide = true,
+    combathide = false,
 }
 
 local classification = {
