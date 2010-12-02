@@ -24,6 +24,7 @@ local cfg = {
     you = "<You>",
     boss = "??",
     colorborderClass = false,
+    combathide = true,
 }
 
 local classification = {
@@ -74,6 +75,10 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
     local name, unit = self:GetUnit()
 
     if unit then
+        if cfg.combathide and InCombatLockdown() then
+            return self:Hide()
+        end
+
         local color = unitColor(unit)
         local ricon = GetRaidTargetIndex(unit)
 
@@ -102,7 +107,10 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
             end
         end
 
+        
+        local alive = not UnitIsDeadOrGhost(unit)
         local level = UnitLevel(unit)
+
         if level then
             local unitClass = UnitIsPlayer(unit) and hex(color)..UnitClass(unit).."|r" or ""
             local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
@@ -118,13 +126,21 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
             for i=2, self:NumLines() do
                 local tiptext = _G["GameTooltipTextLeft"..i]
                 if tiptext:GetText():find(LEVEL) then
-                    tiptext:SetText(("%s %s%s %s%s"):format(textLevel, creature, UnitRace(unit) or "", unitClass, UnitIsDeadOrGhost(unit) and CORPSE or ""):trim())
+                    if alive then
+                        tiptext:SetText(("%s %s%s %s"):format(textLevel, creature, UnitRace(unit) or "", unitClass):trim())
+                    else
+                        tiptext:SetText(("%s %s"):format(textLevel, "|cffCCCCCC"..DEAD.."|r"):trim())
+                    end
                 end
 
                 if tiptext:GetText():find(PVP) then
                     tiptext:SetText(nil)
                 end
             end
+        end
+
+        if not alive then
+            GameTooltipStatusBar:Hide()
         end
 
         if UnitExists(unit.."target") then
