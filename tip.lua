@@ -5,15 +5,19 @@ local cfg = {
     font = mediapath.."expressway.ttf",
     fontsize = 13,
     outline = "OUTLINE",
+    tex = mediapath.."texture",
+
     scale = 1.0,
     point = { "BOTTOMRIGHT", "BOTTOMRIGHT", -10, 215 },
     cursor = false,
-    titles = false,
-    tex = mediapath.."texture",
+
+    hideTitles = true,
+    hideRealm = false,
+
     backdrop = {
         bgFile = "Interface\\Buttons\\WHITE8x8",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        --tile = true,
+        tile = true,
         tileSize = 16,
         edgeSize = 16,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
@@ -21,6 +25,7 @@ local cfg = {
     bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 },
     bdrcolor = { r=0.3, g=0.3, b=0.3 },
     gcolor = { r=1, g=0.1, b=0.8 },
+
     you = "<You>",
     boss = "??",
     colorborderClass = false,
@@ -33,13 +38,10 @@ local classification = {
     rareelite = " R+",
 }
 
-local hex
-do 
-    local format = string.format
-
-    hex = function(color)
-        return format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255)
-    end
+local find = string.find
+local format = string.format
+local hex = function(color)
+    return format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255)
 end
 
 local function unitColor(unit)
@@ -88,14 +90,25 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
         end
 
         if UnitIsPlayer(unit) then
-            self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or not UnitIsConnected(unit) and "<DC>" or ""))
+            self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or 
+            UnitIsDND(unit) and CHAT_FLAG_DND or 
+            not UnitIsConnected(unit) and "<DC>" or ""))
 
-            if not cfg.titles then
+            if cfg.hideTitles then
                 local title = UnitPVPName(unit)
                 if title then
                     local text = GameTooltipTextLeft1:GetText()
                     title = title:gsub(name, "")
                     text = text:gsub(title, "")
+                    if text then GameTooltipTextLeft1:SetText(text) end
+                end
+            end
+
+            if cfg.hideRealm then
+                local _, realm = UnitName(unit)
+                if realm then
+                    local text = GameTooltipTextLeft1:GetText()
+                    text = text:gsub("- "..realm, "")
                     if text then GameTooltipTextLeft1:SetText(text) end
                 end
             end
@@ -107,7 +120,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
             end
         end
 
-        
+
         local alive = not UnitIsDeadOrGhost(unit)
         local level = UnitLevel(unit)
 
@@ -278,6 +291,19 @@ local tooltips = {
 
 for i, frame in ipairs(tooltips) do
     frame:SetScript("OnShow", function(frame) style(frame) end)
+end
+
+local itemrefScripts = {
+    "OnTooltipSetItem",
+    "OnTooltipSetAchievement",
+    "OnTooltipSetQuest",
+    "OnTooltipSetSpell",
+}
+
+for i, script in ipairs(itemrefScripts) do
+    ItemRefTooltip:HookScript(script, function(self)
+        style(self)
+    end)
 end
 
 if IsAddOnLoaded("ManyItemTooltips") then
