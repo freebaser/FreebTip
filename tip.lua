@@ -30,7 +30,10 @@ local cfg = {
     boss = "??",
     colorborderClass = false,
     combathide = false,
+
+    multiTip = true,
 }
+ns.cfg = cfg
 
 local classification = {
     elite = "+",
@@ -86,7 +89,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
         if ricon then
             local text = GameTooltipTextLeft1:GetText()
-            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."18|t", text))
+            GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."14|t", text))
         end
 
         if UnitIsPlayer(unit) then
@@ -277,6 +280,7 @@ local function style(frame)
         end
     end
 end
+ns.style = style
 
 local tooltips = {
     GameTooltip,
@@ -304,10 +308,6 @@ for i, script in ipairs(itemrefScripts) do
     ItemRefTooltip:HookScript(script, function(self)
         style(self)
     end)
-end
-
-if IsAddOnLoaded("ManyItemTooltips") then
-    MIT:AddHook("FreebTip", "OnShow", function(frame) style(frame) end)
 end
 
 local f = CreateFrame"Frame"
