@@ -9,7 +9,7 @@ local cfg = {
 
     scale = 1.0,
     point = { "BOTTOMRIGHT", "BOTTOMRIGHT", -10, 215 },
-    cursor = false,
+    cursor = true,
 
     hideTitles = true,
     hideRealm = false,
@@ -22,24 +22,48 @@ local cfg = {
         edgeSize = 16,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
     },
-    bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 },
-    bdrcolor = { r=0.3, g=0.3, b=0.3 },
-    gcolor = { r=1, g=0.1, b=0.8 },
+    bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 }, -- background
+    bdrcolor = { r=0.3, g=0.3, b=0.3 }, -- border
+    gcolor = { r=1, g=0.1, b=0.8 }, -- guild
 
     you = "<You>",
     boss = "??",
     colorborderClass = false,
-    combathide = false,
+    combathide = false,     -- world objects
+    combathideALL = false,  -- everything
 
-    multiTip = true,
+    multiTip = true, -- show more than one linked item tooltip
+
+    powerbar = true,
+    powerManaOnly = false,
 }
 ns.cfg = cfg
+
+local colors = {power = {}}
+for power, color in next, PowerBarColor do
+    if(type(power) == 'string') then
+        colors.power[power] = {color.r, color.g, color.b}
+    end
+end
+
+colors.power['MANA'] = {.31,.45,.63}
+colors.power['RAGE'] = {.69,.31,.31}
 
 local classification = {
     elite = "+",
     rare = " R",
     rareelite = " R+",
 }
+
+local numberize = function(val)
+    if (val >= 1e6) then
+        return ("%.1fm"):format(val / 1e6)
+    elseif (val >= 1e3) then
+        return ("%.1fk"):format(val / 1e3)
+    else
+        return ("%d"):format(val)
+    end
+end
 
 local find = string.find
 local format = string.format
@@ -74,6 +98,86 @@ local function getTarget(unit)
     else
         return hex(unitColor(unit))..UnitName(unit).."|r"
     end
+end
+
+local function UpdatePower()
+    return function(self, elapsed)
+        self.elapsed = self.elapsed + elapsed
+        if self.elapsed < .25 then return end
+
+        local unit = self.unit
+        if(unit) then
+            local min, max = UnitPower(unit), UnitPowerMax(unit)
+            self:SetValue(min)
+
+            local pp = numberize(min).." / "..numberize(max)
+            self.text:SetText(pp)
+            --print(unit.." / "..min)
+        end
+
+        self.elapsed = 0
+    end
+end
+
+local function HidePower(powerbar)
+    if powerbar then 
+        powerbar:Hide() 
+        
+        if powerbar.text then
+            powerbar.text:SetText(nil)
+        end
+    end
+end
+
+local function ShowPowerBar(self, unit, statusbar)
+    local powerbar = _G[self:GetName().."FreebTipPowerBar"]
+    if not unit then return HidePower(powerbar) end
+
+    local min, max = UnitPower(unit), UnitPowerMax(unit)
+    local ptype, ptoken = UnitPowerType(unit)
+    
+    if(max == 0 or (cfg.powerManaOnly and ptoken ~= 'MANA')) then
+        return HidePower(powerbar)
+    end
+    
+    if(not powerbar) then
+        powerbar = CreateFrame("StatusBar", self:GetName().."FreebTipPowerBar", statusbar)
+        powerbar:SetHeight(statusbar:GetHeight())
+        powerbar:SetWidth(0)
+        powerbar:SetStatusBarTexture(cfg.tex, "OVERLAY")
+        powerbar.elapsed = 0
+        powerbar:SetScript("OnUpdate", UpdatePower())
+
+        local bg = powerbar:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(powerbar)
+        bg:SetTexture(cfg.tex)
+        bg:SetVertexColor(0.5, 0.5, 0.5, 0.5)
+    end
+    powerbar.unit = unit
+    
+    powerbar:SetMinMaxValues(0, max)
+    powerbar:SetValue(min)
+    
+    local pcolor = colors.power[ptoken]
+    if(pcolor) then
+        powerbar:SetStatusBarColor(pcolor[1], pcolor[2], pcolor[3])
+    end
+
+    powerbar:SetPoint("LEFT", statusbar, "LEFT", 0, -(statusbar:GetHeight()) - 5)
+	powerbar:SetPoint("RIGHT", self, "RIGHT", -9, 0)
+
+    self:AddLine(" ")
+    powerbar:Show()
+
+    if(not powerbar.text) then
+        powerbar.text = powerbar:CreateFontString(nil, "OVERLAY")
+        powerbar.text:SetPoint("CENTER", powerbar)
+        powerbar.text:SetFont(cfg.font, 12, cfg.outline)
+        powerbar.text:Show()
+    end
+    
+    local pp = numberize(min).." / "..numberize(max)
+    powerbar.text:SetText(pp)
 end
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
@@ -180,8 +284,12 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
     if GameTooltipStatusBar:IsShown() then
         self:AddLine(" ")
         GameTooltipStatusBar:ClearAllPoints()
-        GameTooltipStatusBar:SetPoint("TOPLEFT", self:GetName().."TextLeft"..self:NumLines(), "TOPLEFT", 0, -4)
-        GameTooltipStatusBar:SetPoint("TOPRIGHT", self, -10, 0)
+        GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -2)
+        GameTooltipStatusBar:SetPoint("RIGHT", self, -9, 0)
+
+        if cfg.powerbar then
+            ShowPowerBar(self, unit, GameTooltipStatusBar)
+        end
     end
 end)
 
@@ -190,16 +298,6 @@ local bg = GameTooltipStatusBar:CreateTexture(nil, "BACKGROUND")
 bg:SetAllPoints(GameTooltipStatusBar)
 bg:SetTexture(cfg.tex)
 bg:SetVertexColor(0.5, 0.5, 0.5, 0.5)
-
-local numberize = function(val)
-    if (val >= 1e6) then
-        return ("%.1fm"):format(val / 1e6)
-    elseif (val >= 1e3) then
-        return ("%.1fk"):format(val / 1e3)
-    else
-        return ("%d"):format(val)
-    end
-end
 
 GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
     if not value then
@@ -294,7 +392,13 @@ local tooltips = {
 }
 
 for i, frame in ipairs(tooltips) do
-    frame:SetScript("OnShow", function(frame) style(frame) end)
+    frame:SetScript("OnShow", function(frame)
+        if(cfg.combathideALL and InCombatLockdown()) then
+            return frame:Hide()
+        end
+        
+        style(frame) 
+    end)
 end
 
 local itemrefScripts = {
