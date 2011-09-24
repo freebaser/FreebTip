@@ -9,7 +9,7 @@ local cfg = {
 
     scale = 1.0,
     point = { "BOTTOMRIGHT", "BOTTOMRIGHT", -10, 215 },
-    cursor = true,
+    cursor = false,
 
     hideTitles = true,
     hideRealm = false,
@@ -35,7 +35,7 @@ local cfg = {
     multiTip = true, -- show more than one linked item tooltip
 
     powerbar = true,
-    powerManaOnly = false,
+    powerManaOnly = true,
 }
 ns.cfg = cfg
 
@@ -108,13 +108,14 @@ local function UpdatePower()
         local unit = self.unit
         if(unit) then
             local min, max = UnitPower(unit), UnitPowerMax(unit)
-            self:SetValue(min)
+            if(max ~= 0) then
+                self:SetValue(min)
 
-            local pp = numberize(min).." / "..numberize(max)
-            self.text:SetText(pp)
-            --print(unit.." / "..min)
+                local pp = numberize(min).." / "..numberize(max)
+                self.text:SetText(pp)
+            end
         end
-
+        
         self.elapsed = 0
     end
 end
@@ -122,7 +123,7 @@ end
 local function HidePower(powerbar)
     if powerbar then 
         powerbar:Hide() 
-        
+
         if powerbar.text then
             powerbar.text:SetText(nil)
         end
@@ -135,11 +136,11 @@ local function ShowPowerBar(self, unit, statusbar)
 
     local min, max = UnitPower(unit), UnitPowerMax(unit)
     local ptype, ptoken = UnitPowerType(unit)
-    
+
     if(max == 0 or (cfg.powerManaOnly and ptoken ~= 'MANA')) then
         return HidePower(powerbar)
     end
-    
+
     if(not powerbar) then
         powerbar = CreateFrame("StatusBar", self:GetName().."FreebTipPowerBar", statusbar)
         powerbar:SetHeight(statusbar:GetHeight())
@@ -154,17 +155,17 @@ local function ShowPowerBar(self, unit, statusbar)
         bg:SetVertexColor(0.5, 0.5, 0.5, 0.5)
     end
     powerbar.unit = unit
-    
+
     powerbar:SetMinMaxValues(0, max)
     powerbar:SetValue(min)
-    
+
     local pcolor = colors.power[ptoken]
     if(pcolor) then
         powerbar:SetStatusBarColor(pcolor[1], pcolor[2], pcolor[3])
     end
 
     powerbar:SetPoint("LEFT", statusbar, "LEFT", 0, -(statusbar:GetHeight()) - 5)
-	powerbar:SetPoint("RIGHT", self, "RIGHT", -9, 0)
+    powerbar:SetPoint("RIGHT", self, "RIGHT", -9, 0)
 
     self:AddLine(" ")
     powerbar:Show()
@@ -175,7 +176,7 @@ local function ShowPowerBar(self, unit, statusbar)
         powerbar.text:SetFont(cfg.font, 12, cfg.outline)
         powerbar.text:Show()
     end
-    
+
     local pp = numberize(min).." / "..numberize(max)
     powerbar.text:SetText(pp)
 end
@@ -396,7 +397,7 @@ for i, frame in ipairs(tooltips) do
         if(cfg.combathideALL and InCombatLockdown()) then
             return frame:Hide()
         end
-        
+
         style(frame) 
     end)
 end
