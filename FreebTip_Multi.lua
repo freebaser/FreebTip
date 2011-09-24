@@ -55,7 +55,7 @@ local _SetItemRef = SetItemRef
 function SetItemRef(...)
     local link, text, button = ...
 
-    if(IsModifiedClick()) then
+    if(IsModifiedClick() or button ~= "LeftButton") then
         return _SetItemRef(...)
     end
 
