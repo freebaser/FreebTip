@@ -34,8 +34,8 @@ local cfg = {
 
     multiTip = true, -- show more than one linked item tooltip
 
-    powerbar = true,
-    powerManaOnly = true,
+    powerbar = true, -- enable power bars
+    powerManaOnly = true, -- only show mana users
 }
 ns.cfg = cfg
 

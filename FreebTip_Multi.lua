@@ -55,16 +55,16 @@ local _SetItemRef = SetItemRef
 function SetItemRef(...)
     local link, text, button = ...
 
-    if(IsModifiedClick() or button ~= "LeftButton") then
-        return _SetItemRef(...)
-    end
+    --print("link - "..link.. " - text "..text.." - button "..button)
 
     local handled = strsplit(":", link)
-    if(types[handled]) then
+    if((not IsModifiedClick()) and handled and types[handled]) then
         local tip = ns:CreateTip(link)
 
         if(tip) then
             ns:ShowTip(tip, link)
         end
+    else
+        return _SetItemRef(...)
     end
 end
