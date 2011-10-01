@@ -3,6 +3,7 @@
 ## Notes: Custom Game Tooltip
 ## Version: @project-version@
 ## Author: Freebaser
+## OptionalDeps: IDCard
 
 tip.lua
 FreebTip_Multi.xml

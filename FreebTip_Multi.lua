@@ -36,6 +36,10 @@ function ns:CreateTip(link)
     local tip = CreateFrame("GameTooltip", "ItemRefTooltip"..num, UIParent, "FreebTip_Multi_Template")
     tip:SetScript("OnShow", function(self) ns.style(self) end)
 
+    table.insert(UISpecialFrames, tip:GetName())
+
+    if(IDCard) then IDCard:RegisterTooltip(tip) end
+
     tip.link = link
     tips[num] = tip
 
