@@ -251,13 +251,16 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 					end
 				end
 
-				local linetext = tiptext:GetText()
-				if linetext:find(PVP) then
-					tiptext:SetText("|cff00FF00"..linetext.."|r")
-				elseif linetext:find(FACTION_ALLIANCE) then
-					tiptext:SetText("|cff7788FF"..linetext.."|r")
-				elseif linetext:find(FACTION_HORDE) then
-					tiptext:SetText("|cffFF4444"..linetext.."|r")
+				if i > 2 then
+					local linetext = tiptext:GetText()
+					
+					if linetext:find(PVP) then
+						tiptext:SetText("|cff00FF00"..linetext.."|r")
+					elseif linetext:find(FACTION_ALLIANCE) then
+						tiptext:SetText("|cff7788FF"..linetext.."|r")
+					elseif linetext:find(FACTION_HORDE) then
+						tiptext:SetText("|cffFF4444"..linetext.."|r")
+					end
 				end
 			end
 		end
@@ -276,8 +279,9 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		for i=2, self:NumLines() do
 			local tiptext = _G["GameTooltipTextLeft"..i]
 
+			local linetext = tiptext:GetText()
 			if tiptext:GetText():find(PVP) then
-				tiptext:SetText(nil)
+				tiptext:SetText("|cff00FF00"..linetext.."|r")
 			end
 		end
 
@@ -381,7 +385,12 @@ local function style(frame)
 		end
 	end
 end
+
 ns.style = style
+
+for i = 1, 3 do
+	UIDropDownMenu_CreateFrames(i,i)
+end
 
 local tooltips = {
 	GameTooltip,
@@ -392,6 +401,8 @@ local tooltips = {
 	WorldMapTooltip,
 	DropDownList1MenuBackdrop, 
 	DropDownList2MenuBackdrop,
+	DropDownList3MenuBackdrop,
+	AutoCompleteBox,
 }
 
 for i, frame in ipairs(tooltips) do
