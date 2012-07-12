@@ -16,19 +16,32 @@ local cfg = {
 
 	backdrop = {
 		bgFile = "Interface\\Buttons\\WHITE8x8",
-		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		-- original look
+		--[[edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
 		tile = true,
 		tileSize = 16,
 		edgeSize = 16,
-		insets = { left = 3, right = 3, top = 3, bottom = 3 },
+		insets = { left = 3, right = 3, top = 3, bottom = 3 },]]
+
+		-- glow border
+		edgeFile = mediapath.."glowTex",
+		tile = false,
+		tileSize = 16,
+		edgeSize = 4,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 },
 	},
-	bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 }, -- background
-	bdrcolor = { r=0.3, g=0.3, b=0.3 }, -- border
+	--bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 }, -- background
+	--bdrcolor = { r=0.3, g=0.3, b=0.3 }, -- border
+	bgcolor = { r=0.05, g=0.05, b=0.05, t=1 }, -- background
+	bdrcolor = { r=0.02, g=0.02, b=0.02 }, -- border
+
 	gcolor = { r=1, g=0.1, b=0.8 }, -- guild
 
 	you = "<You>",
 	boss = "??",
+
 	colorborderClass = false,
+
 	combathide = false,     -- world objects
 	combathideALL = false,  -- everything
 
@@ -37,7 +50,7 @@ local cfg = {
 	powerbar = true, -- enable power bars
 	powerManaOnly = true, -- only show mana users
 
-	showRank = false, -- show guild rank
+	showRank = true, -- show guild rank
 }
 ns.cfg = cfg
 
