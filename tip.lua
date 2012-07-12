@@ -36,6 +36,8 @@ local cfg = {
 
 	powerbar = true, -- enable power bars
 	powerManaOnly = true, -- only show mana users
+
+	showRank = false, -- show guild rank
 }
 ns.cfg = cfg
 
@@ -219,10 +221,13 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 				end
 			end
 
-			local unitGuild = GetGuildInfo(unit)
+			local unitGuild, unitRank = GetGuildInfo(unit)
 			local text2 = GameTooltipTextLeft2:GetText()
 			if unitGuild and text2 and text2:find("^"..unitGuild) then	
 				GameTooltipTextLeft2:SetTextColor(cfg.gcolor.r, cfg.gcolor.g, cfg.gcolor.b)
+				if cfg.showRank and unitRank then
+					GameTooltipTextLeft2:SetText(("%s (|cff00FCCC%s|r)"):format(unitGuild, unitRank))
+				end
 			end
 		end
 
@@ -249,18 +254,8 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 					else
 						tiptext:SetText(("%s %s"):format(textLevel, "|cffCCCCCC"..DEAD.."|r"):trim())
 					end
-				end
 
-				if i > 2 then
-					local linetext = tiptext:GetText()
-					
-					if linetext:find(PVP) then
-						tiptext:SetText("|cff00FF00"..linetext.."|r")
-					elseif linetext:find(FACTION_ALLIANCE) then
-						tiptext:SetText("|cff7788FF"..linetext.."|r")
-					elseif linetext:find(FACTION_HORDE) then
-						tiptext:SetText("|cffFF4444"..linetext.."|r")
-					end
+					break
 				end
 			end
 		end
@@ -276,16 +271,20 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
 		GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
 	else
-		for i=2, self:NumLines() do
-			local tiptext = _G["GameTooltipTextLeft"..i]
-
-			local linetext = tiptext:GetText()
-			if tiptext:GetText():find(PVP) then
-				tiptext:SetText("|cff00FF00"..linetext.."|r")
-			end
-		end
-
 		GameTooltipStatusBar:SetStatusBarColor(0, .9, 0)
+	end
+
+	for i=3, self:NumLines() do
+		local tiptext = _G["GameTooltipTextLeft"..i]
+		local linetext = tiptext:GetText()
+
+		if linetext:find(PVP) then
+			tiptext:SetText("|cff00FF00"..linetext.."|r")
+		elseif linetext:find(FACTION_ALLIANCE) then
+			tiptext:SetText("|cff7788FF"..linetext.."|r")
+		elseif linetext:find(FACTION_HORDE) then
+			tiptext:SetText("|cffFF4444"..linetext.."|r")
+		end
 	end
 
 	if GameTooltipStatusBar:IsShown() then
