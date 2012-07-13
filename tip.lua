@@ -51,8 +51,14 @@ local cfg = {
 	powerManaOnly = true, -- only show mana users
 
 	showRank = true, -- show guild rank
+
+	showTalents = true, -- inspect errors unless InspectFix (http://www.curse.com/addons/wow/inspectfix) is install.
 }
 ns.cfg = cfg
+
+local GetTime = GetTime
+local talentcache = {}
+local talenttext = (TALENTS..": ")
 
 local colors = {power = {}}
 for power, color in next, PowerBarColor do
@@ -194,6 +200,63 @@ local function ShowPowerBar(self, unit, statusbar)
 	powerbar.text:SetText(pp)
 end
 
+local talentGUID
+local talentevent = CreateFrame"Frame"
+local talentcolor = "|cffFFFFFF"
+
+local function UpdateTalentText(name)
+	for i=3, GameTooltip:NumLines() do
+		local textLeft = _G["GameTooltipTextLeft"..i]
+		local lineLeft = textLeft:GetText()
+
+		if lineLeft:find(talenttext) then
+			local textRight = _G["GameTooltipTextRight"..i]
+			textRight:SetText(talentcolor..name)
+		end
+	end
+end
+
+local function ShowTalents(self, unit)
+	self:AddDoubleLine(talenttext, talentcolor.."    . . .")
+
+	local uGUID = UnitGUID(unit)
+	if talentcache[uGUID] then
+		local talname = talentcache[uGUID].talent
+		UpdateTalentText(talname)
+
+		-- check to see how old the talentcache is
+		-- flush after 5 mins
+		if(GetTime() - talentcache[uGUID].time) > 300 then
+			talentcache[uGUID] = nil
+		end
+	else
+		local canInspect = CanInspect(unit)
+		if(not canInspect) or (InspectFrame and InspectFrame:IsShown()) then return end
+		talentGUID = uGUID
+
+		talentevent:RegisterEvent"INSPECT_READY"
+		NotifyInspect(unit)
+	end
+end
+
+talentevent:SetScript("OnEvent", function(self, event, arg1)
+	if event == "INSPECT_READY" then
+		if arg1 ~= talentGUID then return end
+
+		local activeSpec = GetActiveTalentGroup(true)
+		local primaryTabId = GetPrimaryTalentTree(true)
+		local _, name = GetTalentTabInfo(primaryTabId,1,nil,activeSpec)
+
+		ClearInspectPlayer()
+		if name then
+			talentcache[arg1] = {talent = name,time = GetTime()}
+			UpdateTalentText(name)
+		end
+
+		self:UnregisterEvent"INSPECT_READY"
+	end
+end)
+
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 	local name, unit = self:GetUnit()
 
@@ -207,10 +270,12 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
 		if ricon then
 			local text = GameTooltipTextLeft1:GetText()
-			GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon].."14|t", text))
+			GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon]..cfg.fontsize.."|t", text))
 		end
 
-		if UnitIsPlayer(unit) then
+		local isPlayer = UnitIsPlayer(unit)
+		local unitGuild, unitRank = GetGuildInfo(unit)
+		if isPlayer then
 			self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or 
 			UnitIsDND(unit) and CHAT_FLAG_DND or 
 			not UnitIsConnected(unit) and "<DC>" or ""))
@@ -234,7 +299,6 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 				end
 			end
 
-			local unitGuild, unitRank = GetGuildInfo(unit)
 			local text2 = GameTooltipTextLeft2:GetText()
 			if unitGuild and text2 and text2:find("^"..unitGuild) then	
 				GameTooltipTextLeft2:SetTextColor(cfg.gcolor.r, cfg.gcolor.g, cfg.gcolor.b)
@@ -248,8 +312,8 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		local level = UnitLevel(unit)
 
 		if level then
-			local unitClass = UnitIsPlayer(unit) and hex(color)..UnitClass(unit).."|r" or ""
-			local creature = not UnitIsPlayer(unit) and UnitCreatureType(unit) or ""
+			local unitClass = isPlayer and hex(color)..UnitClass(unit).."|r" or ""
+			local creature = not isPlayer and UnitCreatureType(unit) or ""
 			local diff = GetQuestDifficultyColor(level)
 
 			if level == -1 then
@@ -259,7 +323,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			local classify = UnitClassification(unit)
 			local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[classify] or "")
 
-			for i=2, self:NumLines() do
+			for i=(unitGuild and 3 or 2), self:NumLines() do
 				local tiptext = _G["GameTooltipTextLeft"..i]
 				if tiptext:GetText():find(LEVEL) then
 					if alive then
@@ -271,15 +335,21 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 					break
 				end
 			end
+		end	
+
+		if UnitExists(unit.."target") then
+			local tarRicon = GetRaidTargetIndex(unit.."target")
+			local tartext, tar = TARGET..": ", ("%s %s"):format((tarRicon and ICON_LIST[tarRicon].."10|t") or 
+			"", getTarget(unit.."target"))
+			self:AddDoubleLine(tartext, tar)
+		end
+
+		if cfg.showTalents and isPlayer and UnitIsFriend("player", unit) and level > 9 then
+			ShowTalents(self, unit)
 		end
 
 		if not alive then
 			GameTooltipStatusBar:Hide()
-		end
-
-		if UnitExists(unit.."target") then
-			local tartext = ("%s: %s"):format(TARGET, getTarget(unit.."target"))
-			self:AddLine(tartext)
 		end
 
 		GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
