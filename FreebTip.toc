@@ -1,9 +1,10 @@
 ## Interface: 40300
 ## Title: FreebTip
-## Notes: Custom Game Tooltip
+## Notes: Custom GameTooltip
 ## Version: @project-version@
 ## Author: Freebaser
 ## OptionalDeps: IDCard
 
 tip.lua
+anchor.lua
 FreebTip_Multi.xml

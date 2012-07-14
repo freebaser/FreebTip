@@ -3,12 +3,12 @@ local _, ns = ...
 local mediapath = "Interface\\AddOns\\FreebTip\\media\\"
 local cfg = {
 	font = mediapath.."expressway.ttf",
-	fontsize = 13,
+	fontsize = 12, -- I'd suggest adjusting the scale instead of the fontsize
 	outline = "OUTLINE",
 	tex = mediapath.."texture",
 
-	scale = 1.0,
-	point = { "BOTTOMRIGHT", "BOTTOMRIGHT", -25, 200 },
+	scale = 1.1,
+	--point = { "BOTTOMRIGHT", "BOTTOMRIGHT", -25, 200 }, -- use "/freebtip" instead
 	cursor = false,
 
 	hideTitles = true,
@@ -30,8 +30,11 @@ local cfg = {
 		edgeSize = 4,
 		insets = { left = 4, right = 4, top = 4, bottom = 4 },
 	},
+	-- original
 	--bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 }, -- background
 	--bdrcolor = { r=0.3, g=0.3, b=0.3 }, -- border
+	--
+	-- glow border
 	bgcolor = { r=0.05, g=0.05, b=0.05, t=1 }, -- background
 	bdrcolor = { r=0.02, g=0.02, b=0.02 }, -- border
 
@@ -47,12 +50,14 @@ local cfg = {
 
 	multiTip = true, -- show more than one linked item tooltip
 
+	hideHealthbar = false,
+
 	powerbar = true, -- enable power bars
 	powerManaOnly = true, -- only show mana users
 
 	showRank = true, -- show guild rank
 
-	showTalents = true, -- inspect errors unless InspectFix (http://www.curse.com/addons/wow/inspectfix) is install.
+	showTalents = false, -- inspect errors unless InspectFix (http://www.curse.com/addons/wow/inspectfix) is install.
 }
 ns.cfg = cfg
 
@@ -204,31 +209,23 @@ local talentGUID
 local talentevent = CreateFrame"Frame"
 local talentcolor = "|cffFFFFFF"
 
-local function UpdateTalentText(name)
-	for i=3, GameTooltip:NumLines() do
-		local textLeft = _G["GameTooltipTextLeft"..i]
-		local lineLeft = textLeft:GetText()
-
-		if lineLeft:find(talenttext) then
-			local textRight = _G["GameTooltipTextRight"..i]
-			textRight:SetText(talentcolor..name)
-		end
-	end
-end
-
 local function ShowTalents(self, unit)
-	self:AddDoubleLine(talenttext, talentcolor.."    . . .")
-
+	local mGUID = UnitGUID("mouseover")
 	local uGUID = UnitGUID(unit)
-	if talentcache[uGUID] then
-		local talname = talentcache[uGUID].talent
-		UpdateTalentText(talname)
 
+	if uGUID ~= mGUID then return end
+
+	if talentcache[uGUID] then	
 		-- check to see how old the talentcache is
 		-- flush after 5 mins
 		if(GetTime() - talentcache[uGUID].time) > 300 then
 			talentcache[uGUID] = nil
+
+			return ShowTalents(self, unit)
 		end
+
+		local talname = talentcache[uGUID].talent
+		self:AddDoubleLine(talenttext, talentcolor..talname)
 	else
 		local canInspect = CanInspect(unit)
 		if(not canInspect) or (InspectFrame and InspectFrame:IsShown()) then return end
@@ -250,7 +247,6 @@ talentevent:SetScript("OnEvent", function(self, event, arg1)
 		ClearInspectPlayer()
 		if name then
 			talentcache[arg1] = {talent = name,time = GetTime()}
-			UpdateTalentText(name)
 		end
 
 		self:UnregisterEvent"INSPECT_READY"
@@ -344,15 +340,15 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			self:AddDoubleLine(tartext, tar)
 		end
 
-		if cfg.showTalents and isPlayer and UnitIsFriend("player", unit) and level > 9 then
+		if cfg.showTalents and isPlayer and level > 9 then
 			ShowTalents(self, unit)
 		end
 
-		if not alive then
+		if not alive or cfg.hideHealthbar then
 			GameTooltipStatusBar:Hide()
+		else
+			GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
 		end
-
-		GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
 	else
 		GameTooltipStatusBar:SetStatusBarColor(0, .9, 0)
 	end
@@ -410,17 +406,6 @@ GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
 	end
 end)
 
-hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
-	local frame = GetMouseFocus()
-	if cfg.cursor and frame == WorldFrame then
-		tooltip:SetOwner(parent, "ANCHOR_CURSOR")
-	else
-		tooltip:SetOwner(parent, "ANCHOR_NONE")	
-		tooltip:SetPoint(cfg.point[1], UIParent, cfg.point[2], cfg.point[3], cfg.point[4])
-	end
-	tooltip.default = 1
-end)
-
 local function setBakdrop(frame)
 	frame:SetBackdrop(cfg.backdrop)
 	frame:SetScale(cfg.scale)
@@ -458,12 +443,21 @@ local function style(frame)
 
 	if frame.NumLines then
 		for index=1, frame:NumLines() do
+			local frameName = frame:GetName()
 			if index == 1 then
-				_G[frame:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
+				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
 			else
-				_G[frame:GetName()..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 			end
-			_G[frame:GetName()..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+			_G[frameName..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+			
+			if _G[frameName..'MoneyFrame'..index.."PrefixText"] then
+				_G[frameName..'MoneyFrame'..index.."PrefixText"]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+				_G[frameName..'MoneyFrame'..index.."SuffixText"]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+				_G[frameName..'MoneyFrame'..index.."GoldButton"]:SetNormalFontObject("GameTooltipText")
+				_G[frameName..'MoneyFrame'..index.."SilverButton"]:SetNormalFontObject("GameTooltipText")
+				_G[frameName..'MoneyFrame'..index.."CopperButton"]:SetNormalFontObject("GameTooltipText")
+			end
 		end
 	end
 end
