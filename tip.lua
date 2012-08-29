@@ -57,13 +57,18 @@ local cfg = {
 
 	showRank = true, -- show guild rank
 
-	showTalents = false, -- inspect errors unless InspectFix (http://www.curse.com/addons/wow/inspectfix) is install.
+	showTalents = false, -- inspect errors unless InspectFix (http://www.curse.com/addons/wow/inspectfix) is installed.
+	tcacheTime = 900, -- talent cache time in seconds (default 15 mins)
 }
 ns.cfg = cfg
 
 local GetTime = GetTime
+local tonumber = tonumber
+local select = select
+
 local talentcache = {}
 local talenttext = (TALENTS..": ")
+local talentcolor = "|cffFFFFFF"
 
 local colors = {power = {}}
 for power, color in next, PowerBarColor do
@@ -101,7 +106,7 @@ local function unitColor(unit)
 	local color = { r=1, g=1, b=1 }
 	if UnitIsPlayer(unit) then
 		local _, class = UnitClass(unit)
-		color = RAID_CLASS_COLORS[class]
+		color = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class]) or RAID_CLASS_COLORS[class]
 	else
 		local reaction = UnitReaction(unit, "player")
 		if reaction then
@@ -176,7 +181,7 @@ local function ShowPowerBar(self, unit, statusbar)
 		local bg = powerbar:CreateTexture(nil, "BACKGROUND")
 		bg:SetAllPoints(powerbar)
 		bg:SetTexture(cfg.tex)
-		bg:SetVertexColor(0.5, 0.5, 0.5, 0.5)
+		bg:SetVertexColor(0.3, 0.3, 0.3, 0.5)
 	end
 	powerbar.unit = unit
 
@@ -207,9 +212,10 @@ end
 
 local talentGUID
 local talentevent = CreateFrame"Frame"
-local talentcolor = "|cffFFFFFF"
 
 local function ShowTalents(self, unit)
+	if not UnitIsPlayer(unit) then return end
+	
 	local mGUID = UnitGUID("mouseover")
 	local uGUID = UnitGUID(unit)
 
@@ -217,8 +223,7 @@ local function ShowTalents(self, unit)
 
 	if talentcache[uGUID] then	
 		-- check to see how old the talentcache is
-		-- flush after 5 mins
-		if(GetTime() - talentcache[uGUID].time) > 300 then
+		if(GetTime() - talentcache[uGUID].time) > cfg.tcacheTime then
 			talentcache[uGUID] = nil
 
 			return ShowTalents(self, unit)
@@ -240,12 +245,12 @@ talentevent:SetScript("OnEvent", function(self, event, arg1)
 	if event == "INSPECT_READY" then
 		if arg1 ~= talentGUID then return end
 
-		local activeSpec = GetActiveTalentGroup(true)
-		local primaryTabId = GetPrimaryTalentTree(true)
-		local _, name = GetTalentTabInfo(primaryTabId,1,nil,activeSpec)
+		local activeSpec = GetInspectSpecialization("mouseover")
+		local name = activeSpec and select(2, GetSpecializationInfoByID(activeSpec))
 
 		ClearInspectPlayer()
 		if name then
+			print(name)
 			talentcache[arg1] = {talent = name,time = GetTime()}
 		end
 
@@ -259,34 +264,18 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 	if unit then
 		if cfg.combathide and InCombatLockdown() then
 			return self:Hide()
-		end
-
-		local color = unitColor(unit)
-		local ricon = GetRaidTargetIndex(unit)
-
-		if ricon then
-			local text = GameTooltipTextLeft1:GetText()
-			GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon]..cfg.fontsize.."|t", text))
-		end
+		end	
 
 		local isPlayer = UnitIsPlayer(unit)
 		local unitGuild, unitRank = GetGuildInfo(unit)
 		if isPlayer then
-			self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or 
-			UnitIsDND(unit) and CHAT_FLAG_DND or 
-			not UnitIsConnected(unit) and "<DC>" or ""))
-
-			if cfg.hideTitles then
-				local title = UnitPVPName(unit)
-				if title then
-					local text = GameTooltipTextLeft1:GetText()
-					title = title:gsub(name, "")
-					text = text:gsub(title, "")
-					if text then GameTooltipTextLeft1:SetText(text) end
-				end
-			end
-
-			if cfg.hideRealm then
+			if cfg.hideTitles and cfg.hideRealm then
+				local unitName = GetUnitName(unit)
+				if unitName then GameTooltipTextLeft1:SetText(unitName) end
+			elseif cfg.hideTitles then
+				local unitName = GetUnitName(unit, true)
+				if unitName then GameTooltipTextLeft1:SetText(unitName) end
+			elseif cfg.hideRealm then
 				local _, realm = UnitName(unit)
 				if realm then
 					local text = GameTooltipTextLeft1:GetText()
@@ -294,6 +283,10 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 					if text then GameTooltipTextLeft1:SetText(text) end
 				end
 			end
+
+			self:AppendText((" |cff00cc00%s|r"):format(UnitIsAFK(unit) and CHAT_FLAG_AFK or 
+			UnitIsDND(unit) and CHAT_FLAG_DND or 
+			not UnitIsConnected(unit) and "<DC>" or ""))
 
 			local text2 = GameTooltipTextLeft2:GetText()
 			if unitGuild and text2 and text2:find("^"..unitGuild) then	
@@ -304,8 +297,15 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			end
 		end
 
+		local ricon = GetRaidTargetIndex(unit)
+		if ricon then
+			local text = GameTooltipTextLeft1:GetText()
+			GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon]..cfg.fontsize.."|t", text))
+		end
+
 		local alive = not UnitIsDeadOrGhost(unit)
 		local level = UnitLevel(unit)
+		local color = unitColor(unit)
 
 		if level then
 			local unitClass = isPlayer and hex(color)..UnitClass(unit).."|r" or ""
@@ -340,7 +340,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			self:AddDoubleLine(tartext, tar)
 		end
 
-		if cfg.showTalents and isPlayer and level > 9 then
+		if cfg.showTalents and isPlayer and tonumber(level) > 9 then
 			ShowTalents(self, unit)
 		end
 
@@ -382,7 +382,7 @@ GameTooltipStatusBar:SetStatusBarTexture(cfg.tex)
 local bg = GameTooltipStatusBar:CreateTexture(nil, "BACKGROUND")
 bg:SetAllPoints(GameTooltipStatusBar)
 bg:SetTexture(cfg.tex)
-bg:SetVertexColor(0.5, 0.5, 0.5, 0.5)
+bg:SetVertexColor(0.3, 0.3, 0.3, 0.5)
 
 GameTooltipStatusBar:SetScript("OnValueChanged", function(self, value)
 	if not value then
@@ -450,7 +450,7 @@ local function style(frame)
 				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 			end
 			_G[frameName..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-			
+
 			if _G[frameName..'MoneyFrame'..index.."PrefixText"] then
 				_G[frameName..'MoneyFrame'..index.."PrefixText"]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 				_G[frameName..'MoneyFrame'..index.."SuffixText"]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
