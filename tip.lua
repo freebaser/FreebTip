@@ -250,7 +250,6 @@ talentevent:SetScript("OnEvent", function(self, event, arg1)
 
 		ClearInspectPlayer()
 		if name then
-			print(name)
 			talentcache[arg1] = {talent = name,time = GetTime()}
 		end
 
