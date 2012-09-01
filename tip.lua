@@ -13,6 +13,8 @@ local cfg = {
 
 	hideTitles = true,
 	hideRealm = false,
+	hideFaction = true,
+	hidePvP = true,
 
 	backdrop = {
 		bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -65,9 +67,17 @@ ns.cfg = cfg
 local GetTime = GetTime
 local tonumber = tonumber
 local select = select
+local _G = _G
+local GameTooltip = GameTooltip
+local PVP = PVP
+local FACTION_ALLIANCE = FACTION_ALLIANCE
+local FACTION_HORDE = FACTION_HORDE
+local LEVEL = LEVEL
+local ICON_LIST = ICON_LIST
+local targettext = TARGET..":"
 
 local talentcache = {}
-local talenttext = (TALENTS..": ")
+local talenttext = TALENTS..":"
 local talentcolor = "|cffFFFFFF"
 
 local colors = {power = {}}
@@ -213,15 +223,29 @@ end
 local talentGUID
 local talentevent = CreateFrame"Frame"
 
-local function ShowTalents(self, unit)
+local function updateTalents(spec)
+	for i=3, GameTooltip:NumLines() do
+		local tiptext = _G["GameTooltipTextLeft"..i]
+		local linetext = tiptext:GetText()
+
+		if linetext and linetext:find(talenttext) then
+			_G["GameTooltipTextRight"..i]:SetText(spec)
+		end
+	end
+end
+
+local function ShowTalents(self, unit, isUpdate)
 	if not UnitIsPlayer(unit) then return end
 	
 	local mGUID = UnitGUID("mouseover")
 	local uGUID = UnitGUID(unit)
 
 	if uGUID ~= mGUID then return end
-
-	if talentcache[uGUID] then	
+	if not isUpdate then
+		self:AddDoubleLine(talenttext, talentcolor.."      ...")
+	end
+	
+	if talentcache[uGUID] then
 		-- check to see how old the talentcache is
 		if(GetTime() - talentcache[uGUID].time) > cfg.tcacheTime then
 			talentcache[uGUID] = nil
@@ -230,13 +254,13 @@ local function ShowTalents(self, unit)
 		end
 
 		local talname = talentcache[uGUID].talent
-		self:AddDoubleLine(talenttext, talentcolor..talname)
+		updateTalents(talentcolor..talname)
 	else
 		local canInspect = CanInspect(unit)
 		if(not canInspect) or (InspectFrame and InspectFrame:IsShown()) then return end
 		talentGUID = uGUID
-
 		talentevent:RegisterEvent"INSPECT_READY"
+		
 		NotifyInspect(unit)
 	end
 end
@@ -248,9 +272,16 @@ talentevent:SetScript("OnEvent", function(self, event, arg1)
 		local activeSpec = GetInspectSpecialization("mouseover")
 		local name = activeSpec and select(2, GetSpecializationInfoByID(activeSpec))
 
-		ClearInspectPlayer()
+		if InspectFrame and (not InspectFrame:IsShown()) then
+			ClearInspectPlayer()
+		end
+		
 		if name then
 			talentcache[arg1] = {talent = name,time = GetTime()}
+			
+			if GameTooltip:IsShown() then
+				ShowTalents(GameTooltip, "mouseover", true)
+			end
 		end
 
 		self:UnregisterEvent"INSPECT_READY"
@@ -334,7 +365,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
 		if UnitExists(unit.."target") then
 			local tarRicon = GetRaidTargetIndex(unit.."target")
-			local tartext, tar = TARGET..": ", ("%s %s"):format((tarRicon and ICON_LIST[tarRicon].."10|t") or 
+			local tartext, tar = targettext, ("%s %s"):format((tarRicon and ICON_LIST[tarRicon].."10|t") or 
 			"", getTarget(unit.."target"))
 			self:AddDoubleLine(tartext, tar)
 		end
@@ -357,11 +388,23 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		local linetext = tiptext:GetText()
 
 		if linetext:find(PVP) then
-			tiptext:SetText("|cff00FF00"..linetext.."|r")
+			if cfg.hidePvP then
+				tiptext:SetText(nil)
+			else
+				tiptext:SetText("|cff00FF00"..linetext.."|r")
+			end
 		elseif linetext:find(FACTION_ALLIANCE) then
-			tiptext:SetText("|cff7788FF"..linetext.."|r")
+			if cfg.hideFaction then
+				tiptext:SetText(nil)
+			else
+				tiptext:SetText("|cff7788FF"..linetext.."|r")
+			end
 		elseif linetext:find(FACTION_HORDE) then
-			tiptext:SetText("|cffFF4444"..linetext.."|r")
+			if cfg.hideFaction then
+				tiptext:SetText(nil)
+			else
+				tiptext:SetText("|cffFF4444"..linetext.."|r")
+			end
 		end
 	end
 
