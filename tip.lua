@@ -46,6 +46,7 @@ local cfg = {
 	boss = "??",
 
 	colorborderClass = false,
+	colorborderItem = true,
 
 	combathide = false,     -- world objects
 	combathideALL = false,  -- everything
@@ -75,6 +76,7 @@ local FACTION_HORDE = FACTION_HORDE
 local LEVEL = LEVEL
 local ICON_LIST = ICON_LIST
 local targettext = TARGET..":"
+local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
 
 local talentcache = {}
 local talenttext = TALENTS..":"
@@ -113,22 +115,22 @@ local hex = function(color)
 end
 
 local function unitColor(unit)
-	local color = { r=1, g=1, b=1 }
+	local color
 	if UnitIsPlayer(unit) then
 		local _, class = UnitClass(unit)
-		color = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class]) or RAID_CLASS_COLORS[class]
+		color = RAID_CLASS_COLORS[class]
 	else
 		local reaction = UnitReaction(unit, "player")
 		if reaction then
 			color = FACTION_BAR_COLORS[reaction]
 		end
 	end
-	return color
+	return (color or { r=1, g=1, b=1 })
 end
 
 function GameTooltip_UnitColor(unit)
 	local color = unitColor(unit)
-	return color.r, color.g, color.b
+	if color then return color.r, color.g, color.b end
 end
 
 local function getTarget(unit)
@@ -463,7 +465,7 @@ local function style(frame)
 	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 	frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
 
-	if frame.GetItem then
+	if cfg.colorborderItem and frame.GetItem then
 		local _, item = frame:GetItem()
 		if item then
 			local quality = select(3, GetItemInfo(item))
@@ -547,15 +549,13 @@ for i, script in ipairs(itemrefScripts) do
 end
 
 local f = CreateFrame"Frame"
-f:SetScript("OnEvent", function(self, event, ...) if ns[event] then return ns[event](ns, event, ...) end end)
-function ns:RegisterEvent(...) for i=1,select("#", ...) do f:RegisterEvent((select(i, ...))) end end
-function ns:UnregisterEvent(...) for i=1,select("#", ...) do f:UnregisterEvent((select(i, ...))) end end
+f:RegisterEvent"PLAYER_LOGIN"
+f:SetScript("OnEvent", function(self, event, ...)
+	if event == "PLAYER_LOGIN" then
+		for i, frame in ipairs(tooltips) do
+			setBakdrop(frame)
+		end
 
-ns:RegisterEvent"PLAYER_LOGIN"
-function ns:PLAYER_LOGIN()
-	for i, frame in ipairs(tooltips) do
-		setBakdrop(frame)
+		f:UnregisterEvent"PLAYER_LOGIN"
 	end
-
-	ns:UnregisterEvent"PLAYER_LOGIN"
-end
+end)
