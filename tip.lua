@@ -60,7 +60,7 @@ local cfg = {
 
 	showRank = true, -- show guild rank
 
-	showTalents = false,
+	showTalents = true,
 	tcacheTime = 900, -- talent cache time in seconds (default 15 mins)
 }
 ns.cfg = cfg
@@ -70,6 +70,7 @@ local tonumber = tonumber
 local select = select
 local _G = _G
 local GameTooltip = GameTooltip
+local InCombatLockdown = InCombatLockdown
 local PVP = PVP
 local FACTION_ALLIANCE = FACTION_ALLIANCE
 local FACTION_HORDE = FACTION_HORDE
@@ -407,7 +408,8 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			self:AddDoubleLine(targettext, tar)
 		end
 
-		if cfg.showTalents and isPlayer and tonumber(level) > 9 then
+		level = tonumber(level)
+		if cfg.showTalents and isPlayer and (level and level > 9) then
 			ShowTalents(self, unit)
 		end
 
@@ -531,7 +533,6 @@ local tooltips = {
 	ShoppingTooltip1,
 	ShoppingTooltip2, 
 	ShoppingTooltip3,
-	WorldMapTooltip,
 	DropDownList1MenuBackdrop, 
 	DropDownList2MenuBackdrop,
 	DropDownList3MenuBackdrop,
@@ -549,6 +550,13 @@ for i, frame in ipairs(tooltips) do
 		style(frame) 
 	end)
 end
+
+-- WorldMapTooltip needs a secure hook
+hooksecurefunc(WorldMapBlobFrame, "Show", function() 
+	WorldMapTooltip:HookScript("OnShow", function(frame)
+		style(frame)
+	end)
+end)
 
 local itemrefScripts = {
 	"OnTooltipSetItem",
