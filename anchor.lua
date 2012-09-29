@@ -58,11 +58,9 @@ SLASH_FREEBTIP1 = "/freebtip"
 SlashCmdList["FREEBTIP"] = function(inp)
 	if not _LOCK then
 		_anchor:Show()
-
 		_LOCK = true
 	else
 		_anchor:Hide()
-
 		_LOCK = nil
 	end
 end

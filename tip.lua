@@ -75,6 +75,8 @@ local PVP = PVP
 local FACTION_ALLIANCE = FACTION_ALLIANCE
 local FACTION_HORDE = FACTION_HORDE
 local LEVEL = LEVEL
+local CHAT_FLAG_AFK =CHAT_FLAG_AFK
+local CHAT_FLAG_DND = CHAT_FLAG_DND
 local ICON_LIST = ICON_LIST
 local targettext = TARGET..":"
 local DEAD = DEAD
@@ -246,7 +248,7 @@ end
 
 local function ShowTalents(self, unit, isUpdate)
 	if not UnitIsPlayer(unit) then return end
-	
+
 	local mGUID = UnitGUID("mouseover")
 	local uGUID = UnitGUID(unit)
 
@@ -254,7 +256,7 @@ local function ShowTalents(self, unit, isUpdate)
 	if not isUpdate then
 		self:AddDoubleLine(talenttext, talentcolor.."        ...")
 	end
-	
+
 	if talentcache[uGUID] then
 		-- check to see how old the talentcache is
 		if(GetTime() - talentcache[uGUID].time) > cfg.tcacheTime then
@@ -270,7 +272,7 @@ local function ShowTalents(self, unit, isUpdate)
 		if(not canInspect) or (InspectFrame and InspectFrame:IsShown()) then return end
 		talentGUID = uGUID
 		talentevent:RegisterEvent"INSPECT_READY"
-		
+
 		NotifyInspect(unit)
 	end
 end
@@ -285,10 +287,10 @@ talentevent:SetScript("OnEvent", function(self, event, arg1)
 		if InspectFrame and (not InspectFrame:IsShown()) then
 			ClearInspectPlayer()
 		end
-		
+
 		if name then
 			talentcache[arg1] = {talent = name,time = GetTime()}
-			
+
 			if GameTooltip:IsShown() then
 				ShowTalents(GameTooltip, "mouseover", true)
 			end
@@ -323,7 +325,10 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			end
 		end
 	end
-	
+
+	self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+	self:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+
 	local name, unit = self:GetUnit()
 	if unit then
 		if cfg.combathide and InCombatLockdown() then
@@ -358,6 +363,10 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 				if cfg.showRank and unitRank then
 					GameTooltipTextLeft2:SetText(("%s (|cff00FCCC%s|r)"):format(unitGuild, unitRank))
 				end
+			end
+
+			if cfg.colorborderClass then
+				self:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
 			end
 		end
 
@@ -427,7 +436,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		GameTooltipStatusBar:ClearAllPoints()
 		--GameTooltipStatusBar:SetPoint("LEFT", self:GetName().."TextLeft"..self:NumLines(), "LEFT", 0, -2)
 		--GameTooltipStatusBar:SetPoint("RIGHT", self, -9, 0)
-		
+
 		GameTooltipStatusBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 10, GameTooltipStatusBar:GetHeight()+3)
 		GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", self, -10, 0)
 
@@ -493,39 +502,30 @@ local function style(frame)
 		end
 	end
 
-	if cfg.colorborderClass then
-		local _, unit = GameTooltip:GetUnit()
-		if UnitIsPlayer(unit) then
-			frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
+	local frameName = frame:GetName()
+	if frame.NumLines then
+		for index=1, frame:NumLines() do
+			if index == 1 then
+				_G[frameName..'TextLeft'..index]:SetFontObject(GameTooltipHeaderText)
+			else
+				_G[frameName..'TextLeft'..index]:SetFontObject(GameTooltipText)
+			end
+			_G[frameName..'TextRight'..index]:SetFontObject(GameTooltipText)
 		end
 	end
 
-	if frame.NumLines then
-		for index=1, frame:NumLines() do
-			local frameName = frame:GetName()
-			if index == 1 then
-				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
-			else
-				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-			end
-			_G[frameName..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+	if _G[frameName.."MoneyFrame1"] and not frame.freebtipmoney then
+		_G[frameName.."MoneyFrame1PrefixText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame1SuffixText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame1GoldButtonText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame1SilverButtonText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame1CopperButtonText"]:SetFontObject(GameTooltipText)
 
-			if _G[frameName..'MoneyFrame'..index.."PrefixText"] then
-				_G[frameName..'MoneyFrame'..index.."PrefixText"]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-				_G[frameName..'MoneyFrame'..index.."SuffixText"]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-				_G[frameName..'MoneyFrame'..index.."GoldButton"]:SetNormalFontObject("GameTooltipText")
-				_G[frameName..'MoneyFrame'..index.."SilverButton"]:SetNormalFontObject("GameTooltipText")
-				_G[frameName..'MoneyFrame'..index.."CopperButton"]:SetNormalFontObject("GameTooltipText")
-			end
-		end
+		frame.freebtipmoney = true
 	end
 end
 
 ns.style = style
-
-for i = 1, 3 do
-	UIDropDownMenu_CreateFrames(i,i)
-end
 
 local tooltips = {
 	GameTooltip,
@@ -533,12 +533,12 @@ local tooltips = {
 	ShoppingTooltip1,
 	ShoppingTooltip2, 
 	ShoppingTooltip3,
+	AutoCompleteBox,
+	FriendsTooltip,
+	WorldMapTooltip,
 	DropDownList1MenuBackdrop, 
 	DropDownList2MenuBackdrop,
 	DropDownList3MenuBackdrop,
-	AutoCompleteBox,
-	FriendsTooltip,
-	BNToastFrame.tooltip,
 }
 
 for i, frame in ipairs(tooltips) do
@@ -551,33 +551,14 @@ for i, frame in ipairs(tooltips) do
 	end)
 end
 
--- WorldMapTooltip needs a secure hook
-hooksecurefunc(WorldMapBlobFrame, "Show", function() 
-	WorldMapTooltip:HookScript("OnShow", function(frame)
-		style(frame)
-	end)
-end)
-
-local itemrefScripts = {
-	"OnTooltipSetItem",
-	"OnTooltipSetAchievement",
-	"OnTooltipSetQuest",
-	"OnTooltipSetSpell",
-}
-
-for i, script in ipairs(itemrefScripts) do
-	ItemRefTooltip:HookScript(script, function(self)
-		style(self)
-	end)
-end
-
 local f = CreateFrame"Frame"
 f:RegisterEvent"PLAYER_LOGIN"
 f:SetScript("OnEvent", function(self, event, ...)
 	if event == "PLAYER_LOGIN" then
-		for i, frame in ipairs(tooltips) do
-			setBakdrop(frame)
-		end
+
+		GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
+		GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+		GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
 
 		f:UnregisterEvent"PLAYER_LOGIN"
 	end
