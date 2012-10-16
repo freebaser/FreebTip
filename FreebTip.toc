@@ -4,6 +4,7 @@
 ## Version: @project-version@
 ## Author: Freebaser
 ## OptionalDeps: IDCard
+## SavedVariables: FreebTipDB
 
 tip.lua
 anchor.lua
