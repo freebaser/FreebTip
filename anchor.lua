@@ -3,31 +3,31 @@ local _DB
 
 local setframe
 do
-local OnDragStart = function(self)
-self:StartMoving()
-end
-
-	local OnDragStop = function(self)
-	self:StopMovingOrSizing()
-
-	local point, relativeTo, relativePoint, xOffset, yOffset = self:GetPoint()
-
-	_DB.point = point
-	_DB.x = xOffset
-	_DB.y = yOffset
-
-	if point == "CENTER" then
-		point = "BOTTOMRIGHT"
+	local OnDragStart = function(self)
+		self:StartMoving()
 	end
 
-	local tooltip = _G["GameTooltip"]
-	tooltip:ClearAllPoints()
+	local OnDragStop = function(self)
+		self:StopMovingOrSizing()
+
+		local point, relativeTo, relativePoint, xOffset, yOffset = self:GetPoint()
+
+		_DB.point = point
+		_DB.x = xOffset
+		_DB.y = yOffset
+
+		if point == "CENTER" then
+			point = "BOTTOMRIGHT"
+		end
+
+		local tooltip = _G["GameTooltip"]
+		tooltip:ClearAllPoints()
 		tooltip:SetPoint(point, _anchor, point)
 	end
 
 	setframe = function(frame)
-	frame:SetHeight(15)
-	frame:SetWidth(80)
+		frame:SetHeight(15)
+		frame:SetWidth(80)
 		frame:SetFrameStrata"TOOLTIP"
 		frame:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background";})
 		frame:EnableMouse(true)
@@ -52,7 +52,7 @@ end
 	end
 end
 
-local _anchor = CreateFrame("Frame", ADDON_NAME.."_Anchor", UIParent)
+local _anchor = CreateFrame("Frame", ADDON_NAME.."_Anchor2", UIParent)
 setframe(_anchor)
 _anchor:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -25, 200)
 _anchor.text:SetText(ADDON_NAME)
@@ -95,9 +95,13 @@ do
 				end
 
 				tooltip:SetOwner(parent, "ANCHOR_NONE")
-				tooltip:SetPoint(point, _anchor, point)
+				if ns.cfg.point then
+					local cfg = ns.cfg
+					tooltip:SetPoint(cfg.point[1], UIParent, cfg.point[1], cfg.point[2], cfg.point[3])
+				else
+					tooltip:SetPoint(point, _anchor, point)
+				end
 			end
-			--tooltip.default = 1
 		end)
 	end)
 end

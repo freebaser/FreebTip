@@ -8,12 +8,13 @@ local cfg = {
 	tex = mediapath.."texture",
 
 	scale = 1.1,
-	--point = { "BOTTOMRIGHT", "BOTTOMRIGHT", -25, 200 }, -- use "/freebtip" instead
+	-- can use /freebtip or uncomment this to override SavedVars
+	--point = { "BOTTOMRIGHT", -25, 200 },
 	cursor = false,
 
 	hideTitles = true,
 	hideRealm = false,
-	hideFaction = false,
+	hideFaction = true,
 	hidePvP = true,
 
 	backdrop = {
@@ -60,7 +61,7 @@ local cfg = {
 
 	showRank = true, -- show guild rank
 
-	showTalents = false,
+	showTalents = true,
 	tcacheTime = 900, -- talent cache time in seconds (default 15 mins)
 }
 ns.cfg = cfg
@@ -82,6 +83,7 @@ local ICON_LIST = ICON_LIST
 local targettext = TARGET..":"
 local DEAD = DEAD
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
 
 local talentcache = {}
 local talenttext = TALENTS..":"
@@ -151,6 +153,19 @@ local function getTarget(unit)
 	end
 end
 
+local function formatLines()
+	for i=1, GameTooltip:NumLines() do
+		local tiptext = _G["GameTooltipTextLeft"..i]
+		
+		tiptext:ClearAllPoints()
+		if i==1 then
+			tiptext:SetPoint("TOPLEFT", GameTooltip, "TOPLEFT", 10, -10)
+		else
+			tiptext:SetPoint("TOPLEFT", _G["GameTooltipTextLeft"..i-1], "BOTTOMLEFT", 0, -2)
+		end
+	end
+end
+
 local function UpdatePower()
 	return function(self, elapsed)
 		self.elapsed = self.elapsed + elapsed
@@ -217,6 +232,7 @@ local function ShowPowerBar(self, unit, statusbar)
 		powerbar:SetStatusBarColor(pcolor[1], pcolor[2], pcolor[3])
 	end
 
+	powerbar:ClearAllPoints()
 	powerbar:SetPoint("LEFT", statusbar, "LEFT", 0, -(statusbar:GetHeight()) - 5)
 	powerbar:SetPoint("RIGHT", self, "RIGHT", -10, 0)
 
@@ -238,25 +254,54 @@ local talentevent = CreateFrame"Frame"
 
 local function updateTalents(spec)
 	for i=3, GameTooltip:NumLines() do
-		local tiptext = _G["GameTooltipTextLeft"..i]
+		local tiptext = _G["GameTooltipTextRight"..i]
 		local linetext = tiptext:GetText()
 
-		if linetext and (linetext:find(talenttext)) then
-			_G["GameTooltipTextRight"..i]:SetText(spec)
+		if linetext and (linetext == "...") then
+			tiptext:SetText(spec)
 			GameTooltip:Show()
+			formatLines()
 			break
 		end
 	end
 end
 
 local function ShowTalents(self, unit)
-	if not UnitIsPlayer(unit) then return end
+	local canInspect = CanInspect(unit)
+	if(not canInspect) then return end
 
 	local uGUID = UnitGUID(unit)
 
-	if(self.freebTalent) then
-		self:AddDoubleLine(talenttext, ("..."), nil, nil, nil, talentcolor.r, talentcolor.g, talentcolor.b)
-		self.freebTalent = false
+	if((not self.freebTalentSet and talentcache[uGUID])) then
+		-- look for an empty line..
+		local talentSet = false
+		for i=3, self:NumLines() do
+			local tiptext = _G["GameTooltipTextLeft"..i]
+
+			local blankline = tiptext:GetText() == " " and true
+			if(blankline or not tiptext:IsShown()) then
+				tiptext:SetText(talenttext)
+				tiptext:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+				tiptext:Show()
+
+				local tipRtext = _G["GameTooltipTextRight"..i]
+				tipRtext:SetText("...")
+				tipRtext:SetTextColor(talentcolor.r, talentcolor.g, talentcolor.b)
+				tipRtext:Show()
+
+				if blankline then
+					self:AddLine(" ")
+				end
+				talentSet = true
+				break
+			end
+		end
+		if not talentSet then
+			self:AddDoubleLine(talenttext, ("..."), NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b,
+			talentcolor.r, talentcolor.g, talentcolor.b)
+		end
+		
+		self.freebTalentSet = true
 	end
 
 	if talentcache[uGUID] then
@@ -270,7 +315,6 @@ local function ShowTalents(self, unit)
 		local talname = talentcache[uGUID].talent
 		updateTalents(talname)
 	else
-		local canInspect = CanInspect(unit)
 		if(not canInspect) or (InspectFrame and InspectFrame:IsShown()) then return end
 		talentGUID = uGUID
 		talentevent:RegisterEvent"INSPECT_READY"
@@ -281,9 +325,7 @@ end
 
 talentevent:SetScript("OnEvent", function(self, event, arg1)
 	if event == "INSPECT_READY" then
-
 		local activeSpec = GetInspectSpecialization("mouseover")
-		--print(activeSpec)
 		local name = activeSpec and select(2, GetSpecializationInfoByID(activeSpec))
 
 		if name then
@@ -293,27 +335,46 @@ talentevent:SetScript("OnEvent", function(self, event, arg1)
 			if InspectFrame and (not InspectFrame:IsShown()) then
 				ClearInspectPlayer()
 			end
-			self:UnregisterEvent"INSPECT_READY"
 		end
 	end
 end)
 
 GameTooltip:HookScript("OnTooltipCleared", function(self)
-	GameTooltip.freebTalent = false
-	GameTooltipStatusBar:ClearAllPoints()
+	self.freebTalentSet = false
 end)
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
+	if cfg.combathide and InCombatLockdown() then
+		return self:Hide()
+	end
 
-	self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
-	self:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+	-- Hide stuff
+	for i=3, self:NumLines() do
+		local tiptext = _G["GameTooltipTextLeft"..i]
+		local linetext = tiptext:GetText()
+
+		if cfg.hidePvP and linetext:find(PVP) then
+			tiptext:SetText(nil)
+			tiptext:Hide()
+		elseif linetext:find(FACTION_ALLIANCE) then
+			if cfg.hideFaction then
+				tiptext:SetText(nil)
+				tiptext:Hide()
+			else
+				tiptext:SetText("|cff7788FF"..linetext.."|r")
+			end
+		elseif linetext:find(FACTION_HORDE) then
+			if cfg.hideFaction then
+				tiptext:SetText(nil)
+				tiptext:Hide()
+			else
+				tiptext:SetText("|cffFF4444"..linetext.."|r")
+			end
+		end
+	end
 
 	local unit = select(2, self:GetUnit()) or GetMouseFocus().unit
 	if unit then
-		if cfg.combathide and InCombatLockdown() then
-			return self:Hide()
-		end
-
 		local isPlayer = UnitIsPlayer(unit)
 		local unitGuild, unitRank = GetGuildInfo(unit)
 		if isPlayer then
@@ -369,7 +430,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			local diff = GetQuestDifficultyColor(level)
 
 			if level == -1 then
-				level = "|cffff0000"..cfg.boss.."|r"
+				level = "|cffff0000"..cfg.boss
 			end
 
 			local classify = UnitClassification(unit)
@@ -393,17 +454,35 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			local tarRicon = GetRaidTargetIndex(unit.."target")
 			local tar = ("%s%s"):format((tarRicon and ICON_LIST[tarRicon].."10|t") or "", getTarget(unit.."target"))
 
-			self:AddDoubleLine(targettext, tar, nil, nil, nil, GameTooltip_UnitColor(unit.."target"))
+			local tarSet = false
+			for i=3, self:NumLines() do
+				local tiptext = _G["GameTooltipTextLeft"..i]
+
+				if(not tiptext:IsShown()) then
+					tiptext:SetText(targettext)
+					tiptext:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+					tiptext:Show()
+
+					local tipRtext = _G["GameTooltipTextRight"..i]
+					tipRtext:SetText(tar)
+					tipRtext:SetTextColor(GameTooltip_UnitColor(unit.."target"))
+					tipRtext:Show()
+
+					tarSet = true
+					break
+				end
+			end
+			if not tarSet then
+				self:AddDoubleLine(targettext, tar, nil, nil, nil, GameTooltip_UnitColor(unit.."target"))
+			end
 		end
 
 		level = tonumber(level)
 		if cfg.showTalents and isPlayer and (level and level > 9) then
-			self.freebTalent = true
 			ShowTalents(self, unit)
 		end
 
 		if not alive or cfg.hideHealthbar then
-			--if cfg.hideHealthbar then
 			GameTooltipStatusBar:Hide()
 		else
 			GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
@@ -422,38 +501,16 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 
 		local gsbHeight = GameTooltipStatusBar:GetHeight()
 		if GameTooltipFreebTipPowerBar and GameTooltipFreebTipPowerBar:IsShown() then
-			
 			GameTooltipStatusBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 10, (gsbHeight*2)+8)
 			GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", self, -10, 0)
 		else
 			GameTooltipStatusBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 10, gsbHeight+3)
 			GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", self, -10, 0)
-
-			--GameTooltipStatusBar:SetPoint("LEFT", self:GetName()..'TextLeft'..self:NumLines(), 0, -2)
-			--GameTooltipStatusBar:SetPoint("RIGHT", self, -10, 0)
 		end
 	end
 
-	for i=3, self:NumLines() do
-		local tiptext = _G["GameTooltipTextLeft"..i]
-		local linetext = tiptext:GetText()
-
-		if cfg.hidePvP and linetext:find(PVP) then
-			tiptext:SetText(nil)
-		elseif linetext:find(FACTION_ALLIANCE) then
-			if cfg.hideFaction then
-				tiptext:SetText(nil)
-			else
-				tiptext:SetText("|cff7788FF"..linetext.."|r")
-			end
-		elseif linetext:find(FACTION_HORDE) then
-			if cfg.hideFaction then
-				tiptext:SetText(nil)
-			else
-				tiptext:SetText("|cffFF4444"..linetext.."|r")
-			end
-		end
-	end
+	self:Show()
+	formatLines()
 end)
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.tex)
@@ -551,19 +608,27 @@ local tooltips = {
 }
 
 for i, frame in ipairs(tooltips) do
-	if frame ~= nil then
-		frame:HookScript("OnShow", function() style(frame) end)
+	if frame then
+		hooksecurefunc(frame, "Show", function(self)
+			if(cfg.combathideALL and InCombatLockdown()) then
+				return self:Hide()
+			end
+
+			style(self)
+		end)
 	end
 end
 
+--[[
+-- Just a tool to get spell ids..
 hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
-	local id = select(11,UnitAura(...))
-	if id then
-		--print(id)
-		GameTooltip:AddLine("ID: "..id)
-		GameTooltip:Show()
-	end
-end)
+local id = select(11,UnitAura(...))
+if id then
+--print(id)
+GameTooltip:AddLine("ID: "..id)
+GameTooltip:Show()
+end
+end)]]
 
 local f = CreateFrame"Frame"
 f:RegisterEvent"PLAYER_LOGIN"
@@ -573,6 +638,7 @@ f:SetScript("OnEvent", function(self, event, ...)
 		GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
 		GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 		GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
+		GameTooltip:HookScript("OnShow", function(self) self:Show() end)
 
 		f:UnregisterEvent"PLAYER_LOGIN"
 	end
