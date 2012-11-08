@@ -153,15 +153,16 @@ local function getTarget(unit)
 	end
 end
 
-local function formatLines()
-	for i=1, GameTooltip:NumLines() do
+local function formatLines(self)
+	for i=1, self:NumLines() do
 		local tiptext = _G["GameTooltipTextLeft"..i]
-		
+		local point, relTo, relPoint, x, y = tiptext:GetPoint()
 		tiptext:ClearAllPoints()
+
 		if i==1 then
-			tiptext:SetPoint("TOPLEFT", GameTooltip, "TOPLEFT", 10, -10)
+			tiptext:SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
 		else
-			tiptext:SetPoint("TOPLEFT", _G["GameTooltipTextLeft"..i-1], "BOTTOMLEFT", 0, -2)
+			tiptext:SetPoint("TOPLEFT", _G["GameTooltipTextLeft"..i-1], "BOTTOMLEFT", x, -2)
 		end
 	end
 end
@@ -205,8 +206,6 @@ local function ShowPowerBar(self, unit, statusbar)
 
 	if(max == 0 or (cfg.powerManaOnly and ptoken ~= 'MANA')) then
 		return HidePower(powerbar)
-	else
-		self:AddLine(" ")
 	end
 
 	if(not powerbar) then
@@ -233,7 +232,7 @@ local function ShowPowerBar(self, unit, statusbar)
 	end
 
 	powerbar:ClearAllPoints()
-	powerbar:SetPoint("LEFT", statusbar, "LEFT", 0, -(statusbar:GetHeight()) - 5)
+	powerbar:SetPoint("LEFT", statusbar, "LEFT", 0, -(statusbar:GetHeight()) - 4)
 	powerbar:SetPoint("RIGHT", self, "RIGHT", -10, 0)
 
 	powerbar:Show()
@@ -259,8 +258,10 @@ local function updateTalents(spec)
 
 		if linetext and (linetext == "...") then
 			tiptext:SetText(spec)
+
+			GameTooltip.freebHeightSet = false
 			GameTooltip:Show()
-			formatLines()
+			formatLines(GameTooltip)
 			break
 		end
 	end
@@ -278,8 +279,7 @@ local function ShowTalents(self, unit)
 		for i=3, self:NumLines() do
 			local tiptext = _G["GameTooltipTextLeft"..i]
 
-			local blankline = tiptext:GetText() == " " and true
-			if(blankline or not tiptext:IsShown()) then
+			if(not tiptext:IsShown()) then
 				tiptext:SetText(talenttext)
 				tiptext:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 				tiptext:Show()
@@ -289,9 +289,6 @@ local function ShowTalents(self, unit)
 				tipRtext:SetTextColor(talentcolor.r, talentcolor.g, talentcolor.b)
 				tipRtext:Show()
 
-				if blankline then
-					self:AddLine(" ")
-				end
 				talentSet = true
 				break
 			end
@@ -300,7 +297,7 @@ local function ShowTalents(self, unit)
 			self:AddDoubleLine(talenttext, ("..."), NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b,
 			talentcolor.r, talentcolor.g, talentcolor.b)
 		end
-		
+
 		self.freebTalentSet = true
 	end
 
@@ -341,6 +338,7 @@ end)
 
 GameTooltip:HookScript("OnTooltipCleared", function(self)
 	self.freebTalentSet = false
+	self.freebHeightSet = false
 end)
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
@@ -495,13 +493,12 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		if cfg.powerbar then
 			ShowPowerBar(self, unit, GameTooltipStatusBar)
 		end
-
-		self:AddLine(" ")
+		
 		GameTooltipStatusBar:ClearAllPoints()
 
 		local gsbHeight = GameTooltipStatusBar:GetHeight()
 		if GameTooltipFreebTipPowerBar and GameTooltipFreebTipPowerBar:IsShown() then
-			GameTooltipStatusBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 10, (gsbHeight*2)+8)
+			GameTooltipStatusBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 10, ((gsbHeight)*2)+7)
 			GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", self, -10, 0)
 		else
 			GameTooltipStatusBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 10, gsbHeight+3)
@@ -510,7 +507,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 	end
 
 	self:Show()
-	formatLines()
+	formatLines(self)
 end)
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.tex)
@@ -639,6 +636,24 @@ f:SetScript("OnEvent", function(self, event, ...)
 		GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 		GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
 		GameTooltip:HookScript("OnShow", function(self) self:Show() end)
+
+		GameTooltip:SetScript("OnUpdate", function(self, elapsed)
+			if(self.freebHeightSet) then return end
+
+			local gsb = GameTooltipStatusBar
+			local powbar = GameTooltipFreebTipPowerBar
+
+			if gsb:IsShown() then
+				local height = gsb:GetHeight()+6
+
+				if powbar and powbar:IsShown() then
+					height = (gsb:GetHeight()*2)+9
+				end
+
+				self:SetHeight((self:GetHeight()+height))
+			end
+			self.freebHeightSet = true
+		end)
 
 		f:UnregisterEvent"PLAYER_LOGIN"
 	end
