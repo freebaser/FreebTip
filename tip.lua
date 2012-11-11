@@ -259,9 +259,8 @@ local function updateTalents(spec)
 		if linetext and (linetext == "...") then
 			tiptext:SetText(spec)
 
-			GameTooltip.freebHeightSet = false
-			GameTooltip:Show()
-			formatLines(GameTooltip)
+			GameTooltip.freebHeightSet = nil
+			GameTooltip:Show()	
 			break
 		end
 	end
@@ -338,7 +337,7 @@ end)
 
 GameTooltip:HookScript("OnTooltipCleared", function(self)
 	self.freebTalentSet = false
-	self.freebHeightSet = false
+	self.freebHeightSet = nil
 end)
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(self)
@@ -401,10 +400,6 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 				if cfg.showRank and unitRank then
 					GameTooltipTextLeft2:SetText(("%s (|cff00FCCC%s|r)"):format(unitGuild, unitRank))
 				end
-			end
-
-			if cfg.colorborderClass then
-				self:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
 			end
 		end
 
@@ -493,7 +488,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		if cfg.powerbar then
 			ShowPowerBar(self, unit, GameTooltipStatusBar)
 		end
-		
+
 		GameTooltipStatusBar:ClearAllPoints()
 
 		local gsbHeight = GameTooltipStatusBar:GetHeight()
@@ -505,9 +500,6 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 			GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", self, -10, 0)
 		end
 	end
-
-	self:Show()
-	formatLines(self)
 end)
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.tex)
@@ -552,6 +544,13 @@ function style(frame)
 
 	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 	frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+	
+	if cfg.colorborderClass then
+		local _, unit = GameTooltip:GetUnit()
+		if UnitIsPlayer(unit) then
+			frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
+		end
+	end
 
 	if cfg.colorborderItem and frame.GetItem then
 		local _, item = frame:GetItem()
@@ -561,9 +560,7 @@ function style(frame)
 			if(quality) then
 				local r, g, b = GetItemQualityColor(quality)
 				frame:SetBackdropBorderColor(r, g, b)
-			end
-		else
-			frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+			end		
 		end
 	end
 
@@ -606,7 +603,7 @@ local tooltips = {
 
 for i, frame in ipairs(tooltips) do
 	if frame then
-		hooksecurefunc(frame, "Show", function(self)
+		frame:HookScript("OnShow", function(self)
 			if(cfg.combathideALL and InCombatLockdown()) then
 				return self:Hide()
 			end
@@ -614,6 +611,25 @@ for i, frame in ipairs(tooltips) do
 			style(self)
 		end)
 	end
+end
+
+local function GT_OnUpdate(self, elapsed)
+	if(self:GetHeight() == self.freebHeightSet) then return end
+
+	local gsb = GameTooltipStatusBar
+	local powbar = GameTooltipFreebTipPowerBar
+
+	if gsb:IsShown() then
+		local height = gsb:GetHeight()+6
+
+		if powbar and powbar:IsShown() then
+			height = (gsb:GetHeight()*2)+9
+		end
+
+		self:SetHeight((self:GetHeight()+height))
+	end
+	self.freebHeightSet = self:GetHeight()
+	formatLines(self)
 end
 
 --[[
@@ -634,26 +650,9 @@ f:SetScript("OnEvent", function(self, event, ...)
 
 		GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
 		GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-		GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
-		GameTooltip:HookScript("OnShow", function(self) self:Show() end)
+		GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)		
 
-		GameTooltip:SetScript("OnUpdate", function(self, elapsed)
-			if(self.freebHeightSet) then return end
-
-			local gsb = GameTooltipStatusBar
-			local powbar = GameTooltipFreebTipPowerBar
-
-			if gsb:IsShown() then
-				local height = gsb:GetHeight()+6
-
-				if powbar and powbar:IsShown() then
-					height = (gsb:GetHeight()*2)+9
-				end
-
-				self:SetHeight((self:GetHeight()+height))
-			end
-			self.freebHeightSet = true
-		end)
+		GameTooltip:HookScript("OnUpdate", GT_OnUpdate)
 
 		f:UnregisterEvent"PLAYER_LOGIN"
 	end
