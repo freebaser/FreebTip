@@ -118,7 +118,7 @@ end
 local find = string.find
 local format = string.format
 local hex = function(color)
-	return format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255)
+	return color and format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255) or "|cffFFFFFF"
 end
 
 local nilcolor = { r=1, g=1, b=1 }
@@ -211,6 +211,7 @@ local function ShowPowerBar(self, unit, statusbar)
 	if(not powerbar) then
 		powerbar = CreateFrame("StatusBar", self:GetName().."FreebTipPowerBar", statusbar)
 		powerbar:SetHeight(statusbar:GetHeight())
+		powerbar:SetFrameLevel(statusbar:GetFrameLevel())
 		powerbar:SetWidth(0)
 		powerbar:SetStatusBarTexture(cfg.tex, "OVERLAY")
 		powerbar.elapsed = 0
@@ -415,7 +416,13 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 		GameTooltipTextLeft1:SetTextColor(GameTooltip_UnitColor(unit))
 
 		local alive = not UnitIsDeadOrGhost(unit)
-		local level = UnitLevel(unit)
+
+		local level
+		if(UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
+			level = UnitBattlePetLevel(unit)
+		else
+			level = UnitLevel(unit)
+		end
 
 		if level then
 			local unitClass = isPlayer and hex(color)..UnitClass(unit).."|r" or ""
@@ -596,6 +603,7 @@ local tooltips = {
 	AutoCompleteBox,
 	FriendsTooltip,
 	WorldMapTooltip,
+	FloatingBattlePetTooltip,
 	DropDownList1MenuBackdrop,
 	DropDownList2MenuBackdrop,
 	DropDownList3MenuBackdrop,
