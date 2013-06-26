@@ -30,16 +30,16 @@ local cfg = {
 		edgeFile = mediapath.."glowTex",
 		tile = false,
 		tileSize = 16,
-		edgeSize = 4,
-		insets = { left = 4, right = 4, top = 4, bottom = 4 },
+		edgeSize = 3,
+		insets = { left = 3, right = 3, top = 3, bottom = 3 },
 	},
 	-- original
 	--bgcolor = { r=0.05, g=0.05, b=0.05, t=0.9 }, -- background
 	--bdrcolor = { r=0.3, g=0.3, b=0.3 }, -- border
 	--
 	-- glow border
-	bgcolor = { r=0.06, g=0.06, b=0.06, t=1 }, -- background
-	bdrcolor = { r=0.04, g=0.04, b=0.04 }, -- border
+	bgcolor = { r=0.05, g=0.05, b=0.05, t=1 }, -- background
+	bdrcolor = { r=0, g=0, b=0 }, -- border
 
 	gcolor = { r=1, g=0.1, b=0.8 }, -- guild
 
@@ -119,7 +119,7 @@ end
 local find = string.find
 local format = string.format
 local hex = function(color)
-	return color and format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255) or "|cffFFFFFF"
+	return (color.r and format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255)) or "|cffFFFFFF"
 end
 
 local nilcolor = { r=1, g=1, b=1 }
@@ -384,7 +384,7 @@ local function PlayerTitle(self, unit)
 	not UnitIsConnected(unit) and "<DC>"
 
 	if(status) then
-		self:AppendText((" |cffCCCC00%s|r"):format(status))
+		self:AppendText((" |cff00cc00%s|r"):format(status))
 	end
 end
 
@@ -463,24 +463,20 @@ local function ShowTarget(self, unit)
 	end
 end
 
-GameTooltip:HookScript("OnTooltipSetUnit", function(self)
+local function OnSetUnit(self)
 	if(cfg.combathide and InCombatLockdown()) then
 		return self:Hide()
 	end
 
 	hideLines(self)
 
-	local unit = select(2, self:GetUnit()) or GetMouseFocus().unit
-	if(unit) then
+	local unit = select(2, self:GetUnit()) or GetMouseFocus().unit or "mouseover"
+	if(UnitExists(unit)) then
 		local isPlayer = UnitIsPlayer(unit)
 
 		if(isPlayer) then
 			PlayerTitle(self, unit)
 			PlayerGuild(self, unit)
-
-			if(cfg.colorborderClass) then
-				self:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
-			end
 		end
 
 		local ricon = GetRaidTargetIndex(unit)
@@ -541,7 +537,9 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 	end
 
 	SetStatusBar(self, unit)
-end)
+end
+
+GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
 
 gtSB:SetStatusBarTexture(cfg.tex)
 local bg = gtSB:CreateTexture(nil, "BACKGROUND")
@@ -549,7 +547,7 @@ bg:SetAllPoints(GameTooltipStatusBar)
 bg:SetTexture(cfg.tex)
 bg:SetVertexColor(0.3, 0.3, 0.3, 0.5)
 
-gtSB:SetScript("OnValueChanged", function(self, value)
+local function gtSBValChange(self, value)
 	if(not value) then
 		return
 	end
@@ -569,7 +567,9 @@ gtSB:SetScript("OnValueChanged", function(self, value)
 		local hp = numberize(min).." / "..numberize(max)
 		self.text:SetText(hp)
 	end
-end)
+end
+
+gtSB:SetScript("OnValueChanged", gtSBValChange)
 
 function style(frame)
 	frame:SetScale(cfg.scale)
@@ -578,7 +578,13 @@ function style(frame)
 		frame.freebtipBD = true
 	end
 	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
-	frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+
+	local unit = GetMouseFocus().unit or "mouseover"
+	if(cfg.colorborderClass and UnitIsPlayer(unit)) then
+		frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
+	else
+		frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+	end
 
 	if(cfg.colorborderItem and frame.GetItem) then
 		local _, item = frame:GetItem()
@@ -611,6 +617,14 @@ function style(frame)
 		_G[frameName.."MoneyFrame1SilverButtonText"]:SetFontObject(GameTooltipText)
 		_G[frameName.."MoneyFrame1CopperButtonText"]:SetFontObject(GameTooltipText)
 	end
+
+	if(_G[frameName.."MoneyFrame2"]) then
+		_G[frameName.."MoneyFrame2PrefixText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame2SuffixText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame2GoldButtonText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame2SilverButtonText"]:SetFontObject(GameTooltipText)
+		_G[frameName.."MoneyFrame2CopperButtonText"]:SetFontObject(GameTooltipText)
+	end
 end
 
 ns.style = style
@@ -624,7 +638,11 @@ local tooltips = {
 	AutoCompleteBox,
 	FriendsTooltip,
 	WorldMapTooltip,
+	WorldMapCompareTooltip1,
+	WorldMapCompareTooltip2,
+	WorldMapCompareTooltip3,
 	FloatingBattlePetTooltip,
+	BattlePetTooltip,
 	DropDownList1MenuBackdrop,
 	DropDownList2MenuBackdrop,
 	DropDownList3MenuBackdrop,
