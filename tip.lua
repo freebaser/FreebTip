@@ -63,6 +63,8 @@ local cfg = {
 
 	showTalents = true,
 	tcacheTime = 900, -- talent cache time in seconds (default 15 mins)
+
+	spellid = false,
 }
 ns.cfg = cfg
 local style
@@ -572,6 +574,8 @@ end
 gtSB:SetScript("OnValueChanged", gtSBValChange)
 
 function style(frame)
+	if(not frame) then return end
+
 	frame:SetScale(cfg.scale)
 	if(not frame.freebtipBD) then
 		frame:SetBackdrop(cfg.backdrop)
@@ -599,6 +603,8 @@ function style(frame)
 	end
 
 	local frameName = frame:GetName()
+	if(not frameName) then return end
+
 	if(frameName ~= "GameTooltip" and frame.NumLines) then
 		for index=1, frame:NumLines() do
 			if(index==1) then
@@ -628,6 +634,7 @@ function style(frame)
 end
 
 ns.style = style
+FreebTipStyle = style
 
 local tooltips = {
 	GameTooltip,
@@ -641,6 +648,9 @@ local tooltips = {
 	WorldMapCompareTooltip1,
 	WorldMapCompareTooltip2,
 	WorldMapCompareTooltip3,
+	ItemRefShoppingTooltip1,
+	ItemRefShoppingTooltip2,
+	ItemRefShoppingTooltip3,
 	FloatingBattlePetTooltip,
 	BattlePetTooltip,
 	DropDownList1MenuBackdrop,
@@ -661,13 +671,14 @@ for i, frame in ipairs(tooltips) do
 end
 
 local function GT_OnUpdate(self, elapsed)
-	if(self:GetHeight() == self.freebHeightSet) then return end
+	self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 
-	local powbar = GameTooltipFreebTipPowerBar
+	if(self:GetHeight() == self.freebHeightSet) then return end	
 
 	if(gtSB:IsShown()) then
 		local height = gtSB:GetHeight()+6
 
+		local powbar = GameTooltipFreebTipPowerBar
 		if(powbar and powbar:IsShown()) then
 			height = (gtSB:GetHeight()*2)+9
 		end
@@ -679,28 +690,34 @@ local function GT_OnUpdate(self, elapsed)
 	formatLines(self)
 end
 
---[[
+
 -- Just a tool to get spell ids..
 hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
-local id = select(11,UnitAura(...))
-if id then
---print(id)
-GameTooltip:AddLine("ID: "..id)
-GameTooltip:Show()
-end
-end)]]
-
-local f = CreateFrame"Frame"
-f:RegisterEvent"PLAYER_LOGIN"
-f:SetScript("OnEvent", function(self, event, ...)
-	if(event == "PLAYER_LOGIN") then
-
-		GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
-		GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
-		GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)		
-
-		GameTooltip:HookScript("OnUpdate", GT_OnUpdate)
-
-		f:UnregisterEvent"PLAYER_LOGIN"
+	local id = select(11,UnitAura(...))
+	if(cfg.spellid and id) then
+		--print(id)
+		GameTooltip:AddLine("ID: "..id)
+		GameTooltip:Show()
 	end
 end)
+
+-- Because if you're not hacking, you're doing it wrong
+local function OverrideGetBackdropColor()
+	return cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t
+end
+
+GameTooltip.GetBackdropColor = OverrideGetBackdropColor
+
+local function OverrideGetBackdropBorderColor()
+	return cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b
+end
+
+GameTooltip.GetBackdropBorderColor = OverrideGetBackdropBorderColor
+GameTooltip:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+GameTooltip:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+GameTooltip:HookScript("OnUpdate", GT_OnUpdate)
+
+GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
+GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
+
