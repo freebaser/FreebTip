@@ -472,7 +472,7 @@ local function OnSetUnit(self)
 
 	hideLines(self)
 
-	local unit = select(2, self:GetUnit()) or GetMouseFocus().unit or "mouseover"
+	local unit = select(2, self:GetUnit())
 	if(UnitExists(unit)) then
 		local isPlayer = UnitIsPlayer(unit)
 
@@ -522,7 +522,7 @@ local function OnSetUnit(self)
 			end
 
 			if(tiptextLevel) then
-				tiptextLevel:SetFormattedText(("%s %s%s %s%s"), textLevel, creature, (UnitRace(unit) or ""),
+				tiptextLevel:SetFormattedText(("%s %s%s %s %s"), textLevel, creature, (UnitRace(unit) or ""),
 				unitClass, (not alive and "|cffCCCCCC"..DEAD.."|r" or ""))
 			end
 		end
@@ -583,8 +583,8 @@ function style(frame)
 	end
 	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 
-	local unit = GetMouseFocus().unit or "mouseover"
-	if(cfg.colorborderClass and UnitIsPlayer(unit)) then
+	local unit = "mouseover"
+	if(cfg.colorborderClass and (UnitExists(unit) and UnitIsPlayer(unit))) then
 		frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
 	else
 		frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
