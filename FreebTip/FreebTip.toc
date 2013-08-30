@@ -1,0 +1,11 @@
+## Interface: 50300
+## Title: FreebTip
+## Notes: Custom GameTooltip
+## Version: @project-version@
+## Author: Freebaser
+## OptionalDeps: IDCard
+## SavedVariables: FreebTipDB
+
+tip.lua
+anchor.lua
+FreebTip_Multi.xml
