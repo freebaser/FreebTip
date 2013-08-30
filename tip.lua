@@ -60,11 +60,6 @@ local cfg = {
 	powerManaOnly = true, -- only show mana users
 
 	showRank = true, -- show guild rank
-
-	showTalents = true,
-	tcacheTime = 900, -- talent cache time in seconds (default 15 mins)
-
-	spellid = false,
 }
 ns.cfg = cfg
 local style
@@ -87,10 +82,6 @@ local targettext = TARGET
 local DEAD = DEAD
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
-
-local talentcache = {}
-local talenttext = SPECIALIZATION
-local talentcolor = {r=1,g=1,b=1}
 
 local colors = {power = {}}
 for power, color in next, PowerBarColor do
@@ -161,12 +152,44 @@ local function formatLines(self)
 			tiptext:SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
 		else
 			local key = i-1
-			local preTiptext = _G["GameTooltipTextLeft"..key] 
-			if(not preTiptext:IsShown()) then
-				key = key-1
+	
+			while(true) do
+				local preTiptext = _G["GameTooltipTextLeft"..key]
+
+				if(preTiptext and not preTiptext:IsShown()) then
+					key = key-1
+				else
+					break
+				end
 			end
 
 			tiptext:SetPoint("TOPLEFT", _G["GameTooltipTextLeft"..key], "BOTTOMLEFT", x, -2)
+		end
+	end
+end
+
+local function hideLines(self)
+	for i=3, self:NumLines() do
+		local tiptext = _G["GameTooltipTextLeft"..i]
+		local linetext = tiptext:GetText()
+
+		if(cfg.hidePvP and linetext:find(PVP)) then
+			tiptext:SetText(nil)
+			tiptext:Hide()
+		elseif(linetext:find(FACTION_ALLIANCE)) then
+			if(cfg.hideFaction) then
+				tiptext:SetText(nil)
+				tiptext:Hide()
+			else
+				tiptext:SetText("|cff7788FF"..linetext.."|r")
+			end
+		elseif(linetext:find(FACTION_HORDE)) then
+			if(cfg.hideFaction) then
+				tiptext:SetText(nil)
+				tiptext:Hide()
+			else
+				tiptext:SetText("|cffFF4444"..linetext.."|r")
+			end
 		end
 	end
 end
@@ -251,124 +274,9 @@ local function ShowPowerBar(self, unit, statusbar)
 	powerbar.text:SetText(pp)
 end
 
-local talentGUID
-local talentevent = CreateFrame"Frame"
-
-local function updateTalents(spec)
-	for i=3, GameTooltip:NumLines() do
-		local tiptext = _G["GameTooltipTextRight"..i]
-		local linetext = tiptext:GetText()
-
-		if(linetext and (linetext == "...")) then
-			tiptext:SetText(spec)
-
-			GameTooltip.freebHeightSet = nil
-			GameTooltip:Show()	
-			break
-		end
-	end
-end
-
-local function ShowTalents(self, unit)
-	local level = UnitLevel(unit) or 0
-	local canInspect = CanInspect(unit)
-	if(not canInspect or level < 10) then return end
-
-	local uGUID = UnitGUID(unit)
-
-	if((not self.freebTalentSet and talentcache[uGUID])) then
-		-- look for an empty line..
-		local talentSet = false
-		for i=3, self:NumLines() do
-			local tiptext = _G["GameTooltipTextLeft"..i]
-
-			if(not tiptext:IsShown()) then
-				tiptext:SetText(talenttext)
-				tiptext:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
-				tiptext:Show()
-
-				local tipRtext = _G["GameTooltipTextRight"..i]
-				tipRtext:SetText("...")
-				tipRtext:SetTextColor(talentcolor.r, talentcolor.g, talentcolor.b)
-				tipRtext:Show()
-
-				talentSet = true
-				break
-			end
-		end
-		if(not talentSet) then
-			self:AddDoubleLine(talenttext, ("..."), NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b,
-			talentcolor.r, talentcolor.g, talentcolor.b)
-		end
-
-		self.freebTalentSet = true
-	end
-
-	if(talentcache[uGUID]) then
-		-- check to see how old the talentcache is
-		if((GetTime() - talentcache[uGUID].time) > cfg.tcacheTime) then
-			talentcache[uGUID] = nil
-
-			return ShowTalents(self, unit)
-		end
-
-		local talname = talentcache[uGUID].talent
-		updateTalents(talname)
-	else
-		if(not canInspect) or (InspectFrame and InspectFrame:IsShown()) then return end
-		talentGUID = uGUID
-		talentevent:RegisterEvent"INSPECT_READY"
-
-		NotifyInspect(unit)
-	end
-end
-
-talentevent:SetScript("OnEvent", function(self, event, arg1)
-	if(event == "INSPECT_READY") then
-		local activeSpec = GetInspectSpecialization("mouseover")
-		local name = activeSpec and select(2, GetSpecializationInfoByID(activeSpec))
-
-		if(name) then
-			talentcache[arg1] = {talent = name,time = GetTime()}
-			ShowTalents(GameTooltip, "mouseover")
-
-			if InspectFrame and (not InspectFrame:IsShown()) then
-				ClearInspectPlayer()
-			end
-		end
-	end
-end)
-
 GameTooltip:HookScript("OnTooltipCleared", function(self)
-	self.freebTalentSet = false
 	self.freebHeightSet = nil
 end)
-
-local function hideLines(self)
-	for i=3, self:NumLines() do
-		local tiptext = _G["GameTooltipTextLeft"..i]
-		local linetext = tiptext:GetText()
-
-		if(cfg.hidePvP and linetext:find(PVP)) then
-			tiptext:SetText(nil)
-			tiptext:Hide()
-		elseif(linetext:find(FACTION_ALLIANCE)) then
-			if(cfg.hideFaction) then
-				tiptext:SetText(nil)
-				tiptext:Hide()
-			else
-				tiptext:SetText("|cff7788FF"..linetext.."|r")
-			end
-		elseif(linetext:find(FACTION_HORDE)) then
-			if(cfg.hideFaction) then
-				tiptext:SetText(nil)
-				tiptext:Hide()
-			else
-				tiptext:SetText("|cffFF4444"..linetext.."|r")
-			end
-		end
-	end
-end
 
 local function PlayerTitle(self, unit)
 	local unitName
@@ -390,8 +298,7 @@ local function PlayerTitle(self, unit)
 	end
 end
 
-local function PlayerGuild(self, unit)
-	local unitGuild, unitRank = GetGuildInfo(unit)
+local function PlayerGuild(self, unit, unitGuild, unitRank)
 	if(unitGuild) then
 		local text2 = GameTooltipTextLeft2
 		local str = hex(cfg.gcolor).."<%s> |cff00E6A8%s|r"
@@ -440,28 +347,8 @@ local function ShowTarget(self, unit)
 		local tarRicon = GetRaidTargetIndex(unit.."target")
 		local tar = ("%s%s"):format((tarRicon and ICON_LIST[tarRicon].."10|t") or "", getTarget(unit.."target"))
 
-		local tarSet = false
-		for i=3, self:NumLines() do
-			local tiptext = _G["GameTooltipTextLeft"..i]
-
-			if(not tiptext:IsShown()) then
-				tiptext:SetText(targettext)
-				tiptext:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
-				tiptext:Show()
-
-				local tipRtext = _G["GameTooltipTextRight"..i]
-				tipRtext:SetText(tar)
-				tipRtext:SetTextColor(GameTooltip_UnitColor(unit.."target"))
-				tipRtext:Show()
-
-				tarSet = true
-				break
-			end
-		end
-		if(not tarSet) then
-			self:AddDoubleLine(targettext, tar, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b,
-			GameTooltip_UnitColor(unit.."target"))
-		end
+		self:AddDoubleLine(targettext, tar, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b,
+		GameTooltip_UnitColor(unit.."target"))
 	end
 end
 
@@ -472,13 +359,16 @@ local function OnSetUnit(self)
 
 	hideLines(self)
 
-	local unit = select(2, self:GetUnit())
+	local _, unit = self:GetUnit()
 	if(UnitExists(unit)) then
 		local isPlayer = UnitIsPlayer(unit)
+		local unitGuild, unitRank
 
 		if(isPlayer) then
 			PlayerTitle(self, unit)
-			PlayerGuild(self, unit)
+
+			unitGuild, unitRank = GetGuildInfo(unit)
+			PlayerGuild(self, unit, unitGuild, unitRank)
 		end
 
 		local ricon = GetRaidTargetIndex(unit)
@@ -511,12 +401,14 @@ local function OnSetUnit(self)
 			end
 
 			local classify = UnitClassification(unit)
-			local textLevel = ("%s%s%s|r"):format(hex(diff), tostring(level), classification[classify] or "")
+			local textLevel = ("%s%d%s|r"):format(hex(diff), level, classification[classify] or "")
 
 			local tiptextLevel
-			for i=2, self:NumLines() do
+			for i=(unitGuild and 3) or 2, self:NumLines() do
 				local tiptext = _G["GameTooltipTextLeft"..i]
-				if(tiptext:GetText() and tiptext:GetText():find(LEVEL)) then
+				local linetext = tiptext:GetText()
+
+				if(linetext and linetext:find(LEVEL)) then
 					tiptextLevel = tiptext
 				end
 			end
@@ -528,10 +420,6 @@ local function OnSetUnit(self)
 		end
 
 		ShowTarget(self, unit)
-
-		if(cfg.showTalents and isPlayer) then
-			ShowTalents(self, unit)
-		end
 
 		if(not alive or cfg.hideHealthbar) then
 			GameTooltipStatusBar:Hide()
@@ -593,7 +481,6 @@ function style(frame)
 	if(cfg.colorborderItem and frame.GetItem) then
 		local _, item = frame:GetItem()
 		if(item) then
-			--print(item)
 			local quality = select(3, GetItemInfo(item))
 			if(quality) then
 				local r, g, b = GetItemQualityColor(quality)
@@ -689,17 +576,6 @@ local function GT_OnUpdate(self, elapsed)
 	self.freebHeightSet = self:GetHeight()
 	formatLines(self)
 end
-
-
--- Just a tool to get spell ids..
-hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
-	local id = select(11,UnitAura(...))
-	if(cfg.spellid and id) then
-		--print(id)
-		GameTooltip:AddLine("ID: "..id)
-		GameTooltip:Show()
-	end
-end)
 
 -- Because if you're not hacking, you're doing it wrong
 local function OverrideGetBackdropColor()
