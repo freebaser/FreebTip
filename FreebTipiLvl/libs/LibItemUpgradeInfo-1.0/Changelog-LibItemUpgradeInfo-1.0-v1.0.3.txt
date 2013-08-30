@@ -1,0 +1,13 @@
+tag v1.0.3
+07ef53a3c0fd40bdb08d0819f23d4c9b57a5841c
+Kevin Ballard <kevin@sb.org>
+2013-08-26 16:37:02 -0700
+
+Tagging as v1.0.3
+
+
+--------------------
+
+Kevin Ballard:
+	- Add upgrade info for 5.4
+	Bump the version to v1.0.3

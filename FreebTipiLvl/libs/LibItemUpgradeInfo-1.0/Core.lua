@@ -36,7 +36,14 @@ local upgradeTable = {
 	[470] = { upgrade = 2, max = 4, ilevel = 8 },
 	[471] = { upgrade = 3, max = 4, ilevel = 12 },
 	[472] = { upgrade = 4, max = 4, ilevel = 16 },
-	
+	[491] = { upgrade = 0, max = 2, ilevel = 0 },
+	[492] = { upgrade = 1, max = 2, ilevel = 4 },
+	[493] = { upgrade = 2, max = 2, ilevel = 8 },
+	[494] = { upgrade = 0, max = 4, ilevel = 0 },
+	[495] = { upgrade = 1, max = 4, ilevel = 4 },
+	[496] = { upgrade = 2, max = 4, ilevel = 8 },
+	[497] = { upgrade = 3, max = 4, ilevel = 12 },
+	[498] = { upgrade = 4, max = 4, ilevel = 16 },
 }
 do
 	local stub = { ilevel = 0 }
