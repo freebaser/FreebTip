@@ -1,6 +1,5 @@
 local ADDON_NAME, ns = ...
 
-local _G = _G
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
 local SPECIALIZATION = SPECIALIZATION
 local GameTooltip = GameTooltip
@@ -48,11 +47,8 @@ end
 
 LibInspect:AddHook(ADDON_NAME, "talents", function(...) getItems(...) end)
 
-GameTooltip:HookScript("OnTooltipCleared", function(self)
-	self.freebtipSpecSet = false
-end)
-
 local function OnSetUnit(self)
+	self.freebtipSpecSet = false
 	local _, unit = self:GetUnit()
 
 	if(UnitExists(unit) and UnitIsPlayer(unit)) then
@@ -60,7 +56,7 @@ local function OnSetUnit(self)
 		local canInspect = CanInspect(unit)
 		local uGUID = UnitGUID(unit)
 
-		if(canInspect or level > 9) then
+		if(canInspect and level > 9) then
 			ShowSpec(self, unit, uGUID)
 		end
 	end

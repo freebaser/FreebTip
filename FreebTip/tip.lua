@@ -62,10 +62,10 @@ local cfg = {
 	showRank = true, -- show guild rank
 }
 ns.cfg = cfg
-local style
 
 local GetTime = GetTime
-local tonumber = tonumber
+local find = string.find
+local format = string.format
 local select = select
 local _G = _G
 local GameTooltip = GameTooltip
@@ -109,8 +109,6 @@ local numberize = function(val)
 	end
 end
 
-local find = string.find
-local format = string.format
 local hex = function(color)
 	return (color.r and format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255)) or "|cffFFFFFF"
 end
@@ -274,10 +272,6 @@ local function ShowPowerBar(self, unit, statusbar)
 	powerbar.text:SetText(pp)
 end
 
-GameTooltip:HookScript("OnTooltipCleared", function(self)
-	self.freebHeightSet = nil
-end)
-
 local function PlayerTitle(self, unit)
 	local unitName
 	if(cfg.hideTitles and cfg.hideRealm) then
@@ -304,7 +298,7 @@ local function PlayerGuild(self, unit, unitGuild, unitRank)
 		local str = hex(cfg.gcolor).."<%s> |cff00E6A8%s|r"
 		local unitRank = cfg.showRank and unitRank or ""
 
-		text2:SetText((str):format(unitGuild, unitRank))
+		text2:SetFormattedText(str, unitGuild, unitRank)
 	end
 end
 
@@ -374,12 +368,12 @@ local function OnSetUnit(self)
 		local ricon = GetRaidTargetIndex(unit)
 		if(ricon) then
 			local text = GameTooltipTextLeft1:GetText()
-			GameTooltipTextLeft1:SetText(("%s %s"):format(ICON_LIST[ricon]..cfg.fontsize.."|t", text))
+			GameTooltipTextLeft1:SetFormattedText(("%s %s"), ICON_LIST[ricon]..cfg.fontsize.."|t", text)
 		end
 
 		local color = unitColor(unit)
 		local line1 = GameTooltipTextLeft1:GetText()
-		GameTooltipTextLeft1:SetFormattedText("%s", hex(color)..line1)
+		GameTooltipTextLeft1:SetFormattedText(("%s"), hex(color)..line1)
 		GameTooltipTextLeft1:SetTextColor(GameTooltip_UnitColor(unit))
 
 		local alive = not UnitIsDeadOrGhost(unit)
@@ -392,16 +386,17 @@ local function OnSetUnit(self)
 		end
 
 		if(level) then
-			local unitClass = isPlayer and hex(color)..UnitClass(unit).."|r" or ""
+			local unitClass = isPlayer and ("%s %s"):format(UnitRace(unit), hex(color)..UnitClass(unit).."|r") or ""
 			local creature = not isPlayer and UnitCreatureType(unit) or ""
 			local diff = GetQuestDifficultyColor(level)
 
+			local boss
 			if(level == -1) then
-				level = "|cffff0000"..cfg.boss
+				boss = "|cffff0000"..cfg.boss
 			end
 
 			local classify = UnitClassification(unit)
-			local textLevel = ("%s%d%s|r"):format(hex(diff), level, classification[classify] or "")
+			local textLevel = ("%s%s%s|r"):format(hex(diff), boss or ("%d"):format(level), classification[classify] or "")
 
 			local tiptextLevel
 			for i=(unitGuild and 3) or 2, self:NumLines() do
@@ -414,8 +409,8 @@ local function OnSetUnit(self)
 			end
 
 			if(tiptextLevel) then
-				tiptextLevel:SetFormattedText(("%s %s%s %s %s"), textLevel, creature, (UnitRace(unit) or ""),
-				unitClass, (not alive and "|cffCCCCCC"..DEAD.."|r" or ""))
+				tiptextLevel:SetFormattedText(("%s %s%s %s"), textLevel, creature, unitClass,
+				(not alive and "|cffCCCCCC"..DEAD.."|r" or ""))
 			end
 		end
 
@@ -427,6 +422,9 @@ local function OnSetUnit(self)
 	end
 
 	SetStatusBar(self, unit)
+
+	self.freebHeightSet = nil
+	self.freebtipUpdate = 0
 end
 
 GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
@@ -461,7 +459,7 @@ end
 
 gtSB:SetScript("OnValueChanged", gtSBValChange)
 
-function style(frame)
+local function style(frame)
 	if(not frame) then return end
 
 	frame:SetScale(cfg.scale)
@@ -557,23 +555,29 @@ for i, frame in ipairs(tooltips) do
 	end
 end
 
+local timer = 0.1
 local function GT_OnUpdate(self, elapsed)
-	self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+	self.freebtipUpdate = (self.freebtipUpdate or timer) - elapsed
+	if(self.freebtipUpdate > 0) then return end
 
-	if(self:GetHeight() == self.freebHeightSet) then return end	
+	self.freebtipUpdate = timer
 
-	if(gtSB:IsShown()) then
-		local height = gtSB:GetHeight()+6
+	local numLines = self:NumLines()
+	if(self.freebHeightSet ~= numLines) then
+		if(gtSB:IsShown()) then
+			local height = gtSB:GetHeight()+6
 
-		local powbar = GameTooltipFreebTipPowerBar
-		if(powbar and powbar:IsShown()) then
-			height = (gtSB:GetHeight()*2)+9
+			local powbar = GameTooltipFreebTipPowerBar
+			if(powbar and powbar:IsShown()) then
+				height = (gtSB:GetHeight()*2)+9
+			end
+
+			self:SetHeight((self:GetHeight()+height))
 		end
 
-		self:SetHeight((self:GetHeight()+height))
+		self.freebHeightSet = numLines
 	end
 
-	self.freebHeightSet = self:GetHeight()
 	formatLines(self)
 end
 
@@ -583,14 +587,15 @@ local function OverrideGetBackdropColor()
 end
 
 GameTooltip.GetBackdropColor = OverrideGetBackdropColor
+GameTooltip:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 
 local function OverrideGetBackdropBorderColor()
 	return cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b
 end
 
 GameTooltip.GetBackdropBorderColor = OverrideGetBackdropBorderColor
-GameTooltip:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 GameTooltip:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+
 GameTooltip:HookScript("OnUpdate", GT_OnUpdate)
 
 GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)

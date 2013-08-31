@@ -1,6 +1,5 @@
 local ADDON_NAME, ns = ...
 
-local _G = _G
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
 local ITEM_LEVEL_ABBR = ITEM_LEVEL_ABBR
 local GameTooltip = GameTooltip
@@ -32,18 +31,13 @@ local function ShowiLvl(self, unit, uGUID)
 	end
 end
 
-local timer = 0
 local updateiLvl = CreateFrame"Frame"
 updateiLvl:SetScript("OnUpdate", function(self, elapsed)
-	timer = timer + elapsed
-	if(timer < .1) then return end
-	
 	local mGUID = UnitGUID("mouseover")
 	if(mGUID) then
 		ShowiLvl(GameTooltip, "mouseover", mGUID)
 	end
 
-	timer = 0
 	self:Hide()
 end)
 updateiLvl:Hide()
@@ -89,20 +83,14 @@ end
 
 LibInspect:AddHook(ADDON_NAME, "items", function(...) getItems(...) end)
 
-GameTooltip:HookScript("OnTooltipCleared", function(self)
-	self.freebtipiLvlSet = false
-end)
-
 local function OnSetUnit(self)
+	self.freebtipiLvlSet = false
 	local _, unit = self:GetUnit()
 
 	if(UnitExists(unit) and UnitIsPlayer(unit)) then
-		local level = UnitLevel(unit) or 0
 		local canInspect = CanInspect(unit)
-		local uGUID = UnitGUID(unit)
 
-		if(canInspect or level > 9) then
-			--ShowiLvl(self, unit, uGUID)
+		if(canInspect) then
 			updateiLvl:Show()
 		end
 	end
