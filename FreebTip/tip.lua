@@ -469,7 +469,7 @@ local function style(frame)
 	end
 	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 
-	local unit = "mouseover"
+	local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
 	if(cfg.colorborderClass and (UnitExists(unit) and UnitIsPlayer(unit))) then
 		frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
 	else
@@ -557,6 +557,8 @@ end
 
 local timer = 0.1
 local function GT_OnUpdate(self, elapsed)
+	self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+
 	self.freebtipUpdate = (self.freebtipUpdate or timer) - elapsed
 	if(self.freebtipUpdate > 0) then return end
 

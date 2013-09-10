@@ -1,4 +1,4 @@
-## Interface: 50300
+## Interface: 50400
 ## Title: FreebTipiLvl
 ## Notes: Equipped iLevel for the GameTooltip
 ## Version: @project-version@
