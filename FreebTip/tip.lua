@@ -60,6 +60,9 @@ local cfg = {
 	powerManaOnly = true, -- only show mana users
 
 	showRank = true, -- show guild rank
+
+	auraID = false, -- show aura id
+	auraCaster = false, -- show (if possible) who applied the aura
 }
 ns.cfg = cfg
 
@@ -82,6 +85,11 @@ local targettext = TARGET
 local DEAD = DEAD
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
+
+local INTERACTIVE_SERVER_LABEL = INTERACTIVE_SERVER_LABEL
+local FOREIGN_SERVER_LABEL = FOREIGN_SERVER_LABEL
+local COALESCED_REALM_TOOLTIP1 = string.split(FOREIGN_SERVER_LABEL, COALESCED_REALM_TOOLTIP)
+local INTERACTIVE_REALM_TOOLTIP1 = string.split(INTERACTIVE_SERVER_LABEL, INTERACTIVE_REALM_TOOLTIP)
 
 local colors = {power = {}}
 for power, color in next, PowerBarColor do
@@ -150,7 +158,7 @@ local function formatLines(self)
 			tiptext:SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
 		else
 			local key = i-1
-	
+
 			while(true) do
 				local preTiptext = _G["GameTooltipTextLeft"..key]
 
@@ -171,22 +179,33 @@ local function hideLines(self)
 		local tiptext = _G["GameTooltipTextLeft"..i]
 		local linetext = tiptext:GetText()
 
-		if(cfg.hidePvP and linetext:find(PVP)) then
-			tiptext:SetText(nil)
-			tiptext:Hide()
-		elseif(linetext:find(FACTION_ALLIANCE)) then
-			if(cfg.hideFaction) then
+		if(linetext) then
+			if(cfg.hidePvP and linetext:find(PVP)) then
 				tiptext:SetText(nil)
 				tiptext:Hide()
-			else
-				tiptext:SetText("|cff7788FF"..linetext.."|r")
-			end
-		elseif(linetext:find(FACTION_HORDE)) then
-			if(cfg.hideFaction) then
+			elseif(linetext:find(COALESCED_REALM_TOOLTIP1) or linetext:find(INTERACTIVE_REALM_TOOLTIP1)) then
 				tiptext:SetText(nil)
 				tiptext:Hide()
-			else
-				tiptext:SetText("|cffFF4444"..linetext.."|r")
+
+				local pretiptext = _G["GameTooltipTextLeft"..i-1]
+				pretiptext:SetText(nil)
+				pretiptext:Hide()
+
+				self:Show()
+			elseif(linetext:find(FACTION_ALLIANCE)) then
+				if(cfg.hideFaction) then
+					tiptext:SetText(nil)
+					tiptext:Hide()
+				else
+					tiptext:SetText("|cff7788FF"..linetext.."|r")
+				end
+			elseif(linetext:find(FACTION_HORDE)) then
+				if(cfg.hideFaction) then
+					tiptext:SetText(nil)
+					tiptext:Hide()
+				else
+					tiptext:SetText("|cffFF4444"..linetext.."|r")
+				end
 			end
 		end
 	end
@@ -284,6 +303,11 @@ local function PlayerTitle(self, unit)
 
 	if(unitName) then GameTooltipTextLeft1:SetText(unitName) end
 
+	local relationship = UnitRealmRelationship(unit)	
+	if(relationship == LE_REALM_RELATION_VIRTUAL) then
+		self:AppendText(("|cffcccccc%s|r"):format(INTERACTIVE_SERVER_LABEL))
+	end
+
 	local status = UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or 
 	not UnitIsConnected(unit) and "<DC>"
 
@@ -304,6 +328,11 @@ end
 
 local function SetStatusBar(self, unit)
 	if(gtSB:IsShown()) then
+		if(cfg.hideHealthbar) then
+			GameTooltipStatusBar:Hide()
+			return
+		end
+
 		if(cfg.powerbar) then
 			ShowPowerBar(self, unit, gtSB)
 		end
@@ -354,6 +383,10 @@ local function OnSetUnit(self)
 	hideLines(self)
 
 	local _, unit = self:GetUnit()
+	if(not unit) then
+		unit = GetMouseFocus() and GetMouseFocus().unit or nil
+	end
+
 	if(UnitExists(unit)) then
 		local isPlayer = UnitIsPlayer(unit)
 		local unitGuild, unitRank
@@ -416,7 +449,7 @@ local function OnSetUnit(self)
 
 		ShowTarget(self, unit)
 
-		if(not alive or cfg.hideHealthbar) then
+		if(not alive) then
 			GameTooltipStatusBar:Hide()
 		end
 	end
@@ -564,6 +597,8 @@ local function GT_OnUpdate(self, elapsed)
 
 	self.freebtipUpdate = timer
 
+	hideLines(self)
+
 	local numLines = self:NumLines()
 	if(self.freebHeightSet ~= numLines) then
 		if(gtSB:IsShown()) then
@@ -604,3 +639,25 @@ GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
 GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
 
+hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
+	local _,_,_,_,_,_,_, caster,_,_, spellID = UnitAura(...)
+
+	if(cfg.auraID and spellID) then
+		--print(spellID)
+		GameTooltip:AddLine("ID: "..spellID)
+		GameTooltip:Show()
+	end
+
+	if(cfg.auraCaster and caster) then
+		--print(caster)
+		local color = unitColor(caster)
+		if(color) then
+			color = hex(color)
+		else
+			color = ""
+		end
+
+		GameTooltip:AddLine("Applied by "..color..UnitName(caster))
+		GameTooltip:Show()
+	end
+end)
