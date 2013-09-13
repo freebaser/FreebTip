@@ -33,9 +33,11 @@ end
 
 local updateiLvl = CreateFrame"Frame"
 updateiLvl:SetScript("OnUpdate", function(self, elapsed)
-	local mGUID = UnitGUID("mouseover")
+	local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
+
+	local mGUID = UnitGUID(unit)
 	if(mGUID) then
-		ShowiLvl(GameTooltip, "mouseover", mGUID)
+		ShowiLvl(GameTooltip, unit, mGUID)
 	end
 
 	self:Hide()
@@ -85,7 +87,11 @@ LibInspect:AddHook(ADDON_NAME, "items", function(...) getItems(...) end)
 
 local function OnSetUnit(self)
 	self.freebtipiLvlSet = false
+
 	local _, unit = self:GetUnit()
+	if(not unit) then
+		unit = GetMouseFocus() and GetMouseFocus().unit or nil
+	end
 
 	if(UnitExists(unit) and UnitIsPlayer(unit)) then
 		local canInspect = CanInspect(unit)

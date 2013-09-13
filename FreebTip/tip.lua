@@ -597,7 +597,10 @@ local function GT_OnUpdate(self, elapsed)
 
 	self.freebtipUpdate = timer
 
-	hideLines(self)
+	local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
+	if(UnitExists(unit)) then
+		hideLines(self)
+	end
 
 	local numLines = self:NumLines()
 	if(self.freebHeightSet ~= numLines) then

@@ -30,7 +30,7 @@ local function ShowSpec(self, unit, uGUID)
 	end
 end
 
-local function getItems(uGUID, data, age)
+local function getTalents(uGUID, data, age)
 	if((uGUID and cache[uGUID]) or (data and type(data.talents) ~= "table")) then return end
 
 	local spec = data.talents.name
@@ -38,18 +38,24 @@ local function getItems(uGUID, data, age)
 	if(spec) then
 		cache[uGUID] = { spec = spec, gtime = GetTime() }
 
-		local mGUID = UnitGUID("mouseover")
+		local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
+		local mGUID = UnitGUID(unit)
+
 		if(uGUID == mGUID) then
 			ShowSpec(GameTooltip, "mouseover", uGUID)
 		end
 	end
 end
 
-LibInspect:AddHook(ADDON_NAME, "talents", function(...) getItems(...) end)
+LibInspect:AddHook(ADDON_NAME, "talents", function(...) getTalents(...) end)
 
 local function OnSetUnit(self)
 	self.freebtipSpecSet = false
+
 	local _, unit = self:GetUnit()
+	if(not unit) then
+		unit = GetMouseFocus() and GetMouseFocus().unit or nil
+	end
 
 	if(UnitExists(unit) and UnitIsPlayer(unit)) then
 		local level = UnitLevel(unit) or 0
