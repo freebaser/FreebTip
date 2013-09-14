@@ -109,9 +109,9 @@ local classification = {
 
 local numberize = function(val)
 	if(val >= 1e6) then
-		return ("%dm"):format(val / 1e6)
+		return ("%.0fm"):format(val / 1e6)
 	elseif(val >= 1e3) then
-		return ("%dk"):format(val / 1e3)
+		return ("%.0fk"):format(val / 1e3)
 	else
 		return ("%d"):format(val)
 	end
@@ -526,11 +526,11 @@ local function style(frame)
 	if(frameName ~= "GameTooltip" and frame.NumLines) then
 		for index=1, frame:NumLines() do
 			if(index==1) then
-				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
+				_G[frameName..'TextLeft'..index]:SetFontObject(GameTooltipHeaderText)
 			else
-				_G[frameName..'TextLeft'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+				_G[frameName..'TextLeft'..index]:SetFontObject(GameTooltipText)
 			end
-			_G[frameName..'TextRight'..index]:SetFont(cfg.font, cfg.fontsize, cfg.outline)
+			_G[frameName..'TextRight'..index]:SetFontObject(GameTooltipText)
 		end
 	end
 
