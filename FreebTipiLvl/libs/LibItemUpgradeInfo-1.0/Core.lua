@@ -107,6 +107,35 @@ function lib:GetItemLevelUpgrade(id)
 	return upgradeTable[id].ilevel
 end
 
+-- GetItemUpgradeInfo(itemString)
+--
+-- Returns the current upgrade level, maximum upgrade level, and item level
+-- increase for an item.
+--
+-- Arguments:
+--   itemString - String - An itemLink or itemString denoting the item
+--
+-- Returns if the item can be upgraded:
+--   Number - The current upgrade level of the item
+--   Number - The maximum upgrade level of the item
+--   Number - The item level increase of the item
+-- or if the item cannot be upgraded:
+--   nil
+--   nil
+--   0
+-- or if the item is invalid or does not contain upgrade info:
+--   nil
+function lib:GetItemUpgradeInfo(itemString)
+	local id = self:GetUpgradeID(itemString)
+	if id then
+		local cur = self:GetCurrentUpgrade(id)
+		local max = self:GetMaximumUpgrade(id)
+		local delta = self:GetItemLevelUpgrade(id)
+		return cur, max, delta
+	end
+	return nil
+end
+
 -- GetUpgradedItemLevel(itemString)
 --
 -- Returns the true item level of the item, including upgrades.
