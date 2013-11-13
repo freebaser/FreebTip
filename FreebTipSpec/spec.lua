@@ -24,7 +24,7 @@ local function ShowSpec(self, unit, uGUID)
 		end
 
 		self:Show()
-	else
+	elseif(not InspectFrame or (InspectFrame and not InspectFrame:IsShown())) then
 		cache[uGUID] = nil
 		local caninspect, unitfound, refreshing = LibInspect:RequestData("talents", unit, true)
 	end
