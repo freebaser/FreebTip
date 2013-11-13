@@ -419,7 +419,7 @@ local function OnSetUnit(self)
 		end
 
 		if(level) then
-			local unitClass = isPlayer and ("%s %s"):format(UnitRace(unit), hex(color)..UnitClass(unit).."|r") or ""
+			local unitClass = isPlayer and ("%s %s"):format((UnitRace(unit) or ""), hex(color)..UnitClass(unit).."|r") or ""
 			local creature = not isPlayer and UnitCreatureType(unit) or ""
 			local diff = GetQuestDifficultyColor(level)
 
@@ -642,9 +642,7 @@ GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
 GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
 GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
 
-hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
-	local _,_,_,_,_,_,_, caster,_,_, spellID = UnitAura(...)
-
+local function addAuraInfo(self, caster, spellID)
 	if(cfg.auraID and spellID) then
 		--print(spellID)
 		GameTooltip:AddLine("ID: "..spellID)
@@ -663,4 +661,21 @@ hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
 		GameTooltip:AddLine("Applied by "..color..UnitName(caster))
 		GameTooltip:Show()
 	end
+end
+
+hooksecurefunc(GameTooltip, "SetUnitAura", function(self,...)
+	local _,_,_,_,_,_,_, caster,_,_, spellID = UnitAura(...)
+
+	addAuraInfo(self, caster, spellID)
 end)
+hooksecurefunc(GameTooltip, "SetUnitBuff", function(self,...)
+	local _,_,_,_,_,_,_, caster,_,_, spellID = UnitBuff(...)
+
+	addAuraInfo(self, caster, spellID)
+end)
+hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self,...)
+	local _,_,_,_,_,_,_, caster,_,_, spellID = UnitDebuff(...)
+
+	addAuraInfo(self, caster, spellID)
+end)
+
