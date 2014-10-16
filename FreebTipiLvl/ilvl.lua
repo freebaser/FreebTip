@@ -62,13 +62,13 @@ local function getItems(uGUID, data, age)
 
 	local numItems = 0
 	local itemsTotal = 0
-	
+
 	for i, id in next, slotIDs do
 		local link = data.items[id]
 
 		if(link) then
 			local ilvl = ItemUpgradeInfo:GetUpgradedItemLevel(link)
-			
+
 			numItems = numItems + 1
 			itemsTotal = itemsTotal + ilvl
 		end
@@ -76,7 +76,7 @@ local function getItems(uGUID, data, age)
 
 	if(numItems > 0) then
 		local score = itemsTotal / numItems
-		cache[uGUID] = { ilvl = score, gtime = GetTime() }		
+		cache[uGUID] = { ilvl = score, gtime = GetTime() }
 
 		-- delay output (prefer ilvl to be last in the tooltip)
 		updateiLvl:Show()

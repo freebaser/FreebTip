@@ -303,12 +303,12 @@ local function PlayerTitle(self, unit)
 
 	if(unitName) then GameTooltipTextLeft1:SetText(unitName) end
 
-	local relationship = UnitRealmRelationship(unit)	
+	local relationship = UnitRealmRelationship(unit)
 	if(relationship == LE_REALM_RELATION_VIRTUAL) then
 		self:AppendText(("|cffcccccc%s|r"):format(INTERACTIVE_SERVER_LABEL))
 	end
 
-	local status = UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or 
+	local status = UnitIsAFK(unit) and CHAT_FLAG_AFK or UnitIsDND(unit) and CHAT_FLAG_DND or
 	not UnitIsConnected(unit) and "<DC>"
 
 	if(status) then
@@ -516,7 +516,7 @@ local function style(frame)
 			if(quality) then
 				local r, g, b = GetItemQualityColor(quality)
 				frame:SetBackdropBorderColor(r, g, b)
-			end		
+			end
 		end
 	end
 

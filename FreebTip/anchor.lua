@@ -25,7 +25,7 @@ do
 		tooltip:SetPoint(point, _anchor, point)
 	end
 
-	setframe = function(frame)	
+	setframe = function(frame)
 		frame:SetHeight(15)
 		frame:SetWidth(80)
 		frame:SetFrameStrata"TOOLTIP"
@@ -79,7 +79,7 @@ do
 
 		_anchor:ClearAllPoints()
 
-		if _DB.point then	
+		if _DB.point then
 			_anchor:SetPoint(_DB.point, UIParent, _DB.point, _DB.x, _DB.y)
 		else
 			_anchor:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -25, 200)

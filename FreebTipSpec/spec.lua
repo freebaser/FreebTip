@@ -6,7 +6,7 @@ local GameTooltip = GameTooltip
 local GetTime = GetTime
 
 local specText = "|cffFFFFFF%s|r"
-local cacheTime = 900 --number of secs to cache each player's spec 
+local cacheTime = 900 --number of secs to cache each player's spec
 
 local LibInspect = LibStub("LibInspect")
 
@@ -14,7 +14,7 @@ local cache = {}
 
 local function ShowSpec(self, unit, uGUID)
 	local cacheGUID = cache[uGUID]
-	if(cacheGUID and cacheGUID.gtime > GetTime()-cacheTime) then	
+	if(cacheGUID and cacheGUID.gtime > GetTime()-cacheTime) then
 
 		if(not self.freebtipSpecSet) then
 			self:AddDoubleLine(SPECIALIZATION, specText:format(cacheGUID.spec), NORMAL_FONT_COLOR.r,
