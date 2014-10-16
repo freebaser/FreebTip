@@ -52,7 +52,7 @@ do
 	end
 end
 
-local _anchor = CreateFrame("Frame", ADDON_NAME.."_Anchor2", UIParent)
+local _anchor = CreateFrame("Frame", nil, UIParent)
 setframe(_anchor)
 _anchor.text:SetText(ADDON_NAME)
 
