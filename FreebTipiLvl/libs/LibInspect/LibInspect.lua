@@ -406,17 +406,23 @@ function lib:GetTalents(target, guid)
 
         -- Talents
         local classDisplayName, class, classID = UnitClass(target);
-        for i=1, MAX_NUM_TALENTS do
-            if i <= GetNumTalents(target) then
-                local name, iconTexture, tier, column, selected, available = GetTalentInfo(i, true, nil, target, self.cache[guid].classID);
-                talents.talents[i] = {
-                    name = name,
-                    iconTexture = iconTexture,
-                    tier = tier,
-                    column = column,
-                    selected = selected,
-                    available = available,
-                }
+        if TalentFrame then
+            for tier=1, MAX_TALENT_TIERS do
+                local talentRow = TalentFrame["tier"..tier];
+                local rowAvailable = true;
+                
+                for column=1, NUM_TALENT_COLUMNS do
+                    local talentID, name, iconTexture, selected, available = GetTalentInfo(tier, column, TalentFrame.talentGroup, TalentFrame.inspect, talentUnit);
+                    -- local name, iconTexture, tier, column, selected, available = GetTalentInfo(tier, true, nil, target, self.cache[guid].classID);
+                    talents.talents[tier] = {
+                        name = name,
+                        iconTexture = iconTexture,
+                        tier = tier,
+                        column = column,
+                        selected = selected,
+                        available = available,
+                    }
+                end
             end
         end
 

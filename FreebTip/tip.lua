@@ -419,7 +419,7 @@ local function OnSetUnit(self)
 		end
 
 		if(level) then
-			local unitClass = isPlayer and ("%s %s"):format((UnitRace(unit) or ""), hex(color)..UnitClass(unit).."|r") or ""
+			local unitClass = isPlayer and ("%s %s"):format((UnitRace(unit) or ""), hex(color)..(UnitClass(unit) or "").."|r") or ""
 			local creature = not isPlayer and UnitCreatureType(unit) or ""
 			local diff = GetQuestDifficultyColor(level)
 
@@ -428,7 +428,7 @@ local function OnSetUnit(self)
 				boss = "|cffff0000"..cfg.boss
 			end
 
-			local classify = UnitClassification(unit)
+			local classify = UnitClassification(unit) or ""
 			local textLevel = ("%s%s%s|r"):format(hex(diff), boss or ("%d"):format(level), classification[classify] or "")
 
 			local tiptextLevel
@@ -555,38 +555,47 @@ ns.style = style
 FreebTipStyle = style
 
 local tooltips = {
-	GameTooltip,
-	ItemRefTooltip,
-	ShoppingTooltip1,
-	ShoppingTooltip2,
-	ShoppingTooltip3,
-	AutoCompleteBox,
-	FriendsTooltip,
-	WorldMapTooltip,
-	WorldMapCompareTooltip1,
-	WorldMapCompareTooltip2,
-	WorldMapCompareTooltip3,
-	ItemRefShoppingTooltip1,
-	ItemRefShoppingTooltip2,
-	ItemRefShoppingTooltip3,
-	FloatingBattlePetTooltip,
-	BattlePetTooltip,
-	DropDownList1MenuBackdrop,
-	DropDownList2MenuBackdrop,
-	DropDownList3MenuBackdrop,
+	"GameTooltip",
+	"ItemRefTooltip",
+	"ShoppingTooltip1",
+	"ShoppingTooltip2",
+	"ShoppingTooltip3",
+	"AutoCompleteBox",
+	"FriendsTooltip",
+	"WorldMapTooltip",
+	"WorldMapCompareTooltip1",
+	"WorldMapCompareTooltip2",
+	"WorldMapCompareTooltip3",
+	"ItemRefShoppingTooltip1",
+	"ItemRefShoppingTooltip2",
+	"ItemRefShoppingTooltip3",
+	"FloatingBattlePetTooltip",
+	"BattlePetTooltip",
+	"DropDownList1MenuBackdrop",
+	"DropDownList2MenuBackdrop",
+	"DropDownList3MenuBackdrop",
 }
 
-for i, frame in ipairs(tooltips) do
-	if(frame) then
-		frame:HookScript("OnShow", function(self)
-			if(cfg.combathideALL and InCombatLockdown()) then
-				return self:Hide()
-			end
+local frameload = CreateFrame"Frame"
+frameload:RegisterEvent"PLAYER_LOGIN"
+frameload:SetScript("OnEvent", function(self)
+	self:UnregisterEvent"PLAYER_LOGIN"
 
-			style(self)
-		end)
+	for i, tip in ipairs(tooltips) do
+		frame = _G[tip]
+		--print(i.. " | ", frame)
+
+		if(frame) then
+			frame:HookScript("OnShow", function(self)
+				if(cfg.combathideALL and InCombatLockdown()) then
+					return self:Hide()
+				end
+
+				style(self)
+			end)
+		end
 	end
-end
+end)
 
 local timer = 0.1
 local function GT_OnUpdate(self, elapsed)
