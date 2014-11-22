@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON_NAME, ns = ...
 
 local mediapath = "Interface\\AddOns\\FreebTip\\media\\"
 local cfg = {
@@ -15,6 +15,7 @@ local cfg = {
 	hideTitles = true,
 	hideRealm = false,
 	hideFaction = true,
+	showFactionIcon = true,
 	hidePvP = true,
 
 	backdrop = {
@@ -44,7 +45,7 @@ local cfg = {
 	gcolor = { r=1, g=0.1, b=0.8 }, -- guild
 
 	you = "<You>",
-	boss = "??",
+	boss = BOSS,
 
 	colorborderClass = false,
 	colorborderItem = true,
@@ -61,8 +62,8 @@ local cfg = {
 
 	showRank = true, -- show guild rank
 
-	auraID = false, -- show aura id
-	auraCaster = false, -- show (if possible) who applied the aura
+	auraID = true, -- show aura id
+	auraCaster = true, -- show (if possible) who applied the aura
 }
 ns.cfg = cfg
 
@@ -91,6 +92,14 @@ local FOREIGN_SERVER_LABEL = FOREIGN_SERVER_LABEL
 local COALESCED_REALM_TOOLTIP1 = string.split(FOREIGN_SERVER_LABEL, COALESCED_REALM_TOOLTIP)
 local INTERACTIVE_REALM_TOOLTIP1 = string.split(INTERACTIVE_SERVER_LABEL, INTERACTIVE_REALM_TOOLTIP)
 
+if(freebDebug) then
+	ns.Debug = function(...)
+		freebDebug:Stuff(ADDON_NAME, ...)
+	end
+else
+	ns.Debug = function() end
+end
+
 local colors = {power = {}}
 for power, color in next, PowerBarColor do
 	if(type(power) == 'string') then
@@ -103,8 +112,8 @@ colors.power['RAGE'] = {.69,.31,.31}
 
 local classification = {
 	elite = "+",
-	rare = " R",
-	rareelite = " R+",
+	rare = " |cff6699ffR|r",
+	rareelite = " |cff6699ffR+|r",
 }
 
 local numberize = function(val)
@@ -192,14 +201,14 @@ local function hideLines(self)
 				pretiptext:Hide()
 
 				self:Show()
-			elseif(linetext:find(FACTION_ALLIANCE)) then
+			elseif(linetext == FACTION_ALLIANCE) then
 				if(cfg.hideFaction) then
 					tiptext:SetText(nil)
 					tiptext:Hide()
 				else
 					tiptext:SetText("|cff7788FF"..linetext.."|r")
 				end
-			elseif(linetext:find(FACTION_HORDE)) then
+			elseif(linetext == FACTION_HORDE) then
 				if(cfg.hideFaction) then
 					tiptext:SetText(nil)
 					tiptext:Hide()
@@ -384,11 +393,30 @@ local function OnSetUnit(self)
 
 	local _, unit = self:GetUnit()
 	if(not unit) then
-		unit = GetMouseFocus() and GetMouseFocus().unit or nil
+		local mFocus = GetMouseFocus()
+		unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit"))
+
+		if(not unit) then
+			unit = "mouseover"
+		end
 	end
 
 	if(UnitExists(unit)) then
 		local isPlayer = UnitIsPlayer(unit)
+
+		if not (self.factionIcon) then
+			self.factionIcon = self:CreateTexture(nil, "OVERLAY")
+			self.factionIcon:SetPoint("TOPRIGHT", -3, -3)
+		end
+
+		local faction = UnitFactionGroup(unit)
+		if(cfg.showFactionIcon and faction and isPlayer) then
+			self.factionIcon:SetAtlas("MountJournalIcons-"..faction, true)
+			self.factionIcon:Show()
+		else
+			self.factionIcon:Hide()
+		end
+
 		local unitGuild, unitRank
 
 		if(isPlayer) then
@@ -429,7 +457,7 @@ local function OnSetUnit(self)
 			end
 
 			local classify = UnitClassification(unit) or ""
-			local textLevel = ("%s%s%s|r"):format(hex(diff), boss or ("%d"):format(level), classification[classify] or "")
+			local textLevel = ("%s%s%s|r"):format(hex(diff), boss or ("%d"):format(level), not boss and classification[classify] or "")
 
 			local tiptextLevel
 			for i=(unitGuild and 3) or 2, self:NumLines() do
@@ -462,6 +490,14 @@ end
 
 GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
 
+local tipCleared = function(self)
+	if(self.factionIcon) then
+		self.factionIcon:Hide()
+	end
+end
+
+GameTooltip:HookScript("OnTooltipCleared", tipCleared)
+
 gtSB:SetStatusBarTexture(cfg.tex)
 local bg = gtSB:CreateTexture(nil, "BACKGROUND")
 bg:SetAllPoints(GameTooltipStatusBar)
@@ -492,10 +528,13 @@ end
 
 gtSB:SetScript("OnValueChanged", gtSBValChange)
 
+local itemTips = {}
+
 local function style(frame)
 	if(not frame) then return end
-
+	local frameName = frame:GetName()
 	frame:SetScale(cfg.scale)
+
 	if(not frame.freebtipBD) then
 		frame:SetBackdrop(cfg.backdrop)
 		frame.freebtipBD = true
@@ -516,13 +555,14 @@ local function style(frame)
 			if(quality) then
 				local r, g, b = GetItemQualityColor(quality)
 				frame:SetBackdropBorderColor(r, g, b)
+				itemTips[frameName] = nil
+			else
+				itemTips[frameName] = true
 			end
 		end
 	end
 
-	local frameName = frame:GetName()
 	if(not frameName) then return end
-
 	if(frameName ~= "GameTooltip" and frame.NumLines) then
 		for index=1, frame:NumLines() do
 			if(index==1) then
@@ -550,6 +590,19 @@ local function style(frame)
 		_G[frameName.."MoneyFrame2CopperButtonText"]:SetFontObject(GameTooltipText)
 	end
 end
+
+local itemEvent = CreateFrame"Frame"
+itemEvent:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+itemEvent:SetScript("OnEvent", function(self, event, arg1)
+	ns.Debug("item info received: ", arg1)
+
+	for k in next, itemTips do
+		local tip = _G[k]
+		if(tip and tip:IsShown()) then
+			style(tip)
+		end
+	end
+end)
 
 ns.style = style
 FreebTipStyle = style
@@ -583,7 +636,7 @@ frameload:SetScript("OnEvent", function(self)
 
 	for i, tip in ipairs(tooltips) do
 		frame = _G[tip]
-		--print(i.. " | ", frame)
+		--ns.Debug(i.. " | ", frame)
 
 		if(frame) then
 			frame:HookScript("OnShow", function(self)
@@ -653,13 +706,11 @@ GameTooltipTextSmall:SetFont(cfg.font, cfg.fontsize-2, cfg.outline)
 
 local function addAuraInfo(self, caster, spellID)
 	if(cfg.auraID and spellID) then
-		--print(spellID)
 		GameTooltip:AddLine("ID: "..spellID)
 		GameTooltip:Show()
 	end
 
 	if(cfg.auraCaster and caster) then
-		--print(caster)
 		local color = unitColor(caster)
 		if(color) then
 			color = hex(color)
@@ -687,4 +738,3 @@ hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self,...)
 
 	addAuraInfo(self, caster, spellID)
 end)
-

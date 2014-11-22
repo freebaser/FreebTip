@@ -54,7 +54,12 @@ local function OnSetUnit(self)
 
 	local _, unit = self:GetUnit()
 	if(not unit) then
-		unit = GetMouseFocus() and GetMouseFocus().unit or nil
+		local mFocus = GetMouseFocus()
+		unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit"))
+
+		if(not unit) then
+			unit = "mouseover"
+		end
 	end
 
 	if(UnitExists(unit) and UnitIsPlayer(unit)) then

@@ -3,7 +3,7 @@
 ## Notes: Custom GameTooltip
 ## Version: @project-version@
 ## Author: Freebaser
-## OptionalDeps: IDCard
+## OptionalDeps: IDCard, freebDebug
 ## SavedVariables: FreebTipDB
 
 tip.lua
