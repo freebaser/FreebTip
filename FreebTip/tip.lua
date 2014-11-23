@@ -15,8 +15,9 @@ local cfg = {
 	hideTitles = true,
 	hideRealm = false,
 	hideFaction = true,
-	showFactionIcon = true,
 	hidePvP = true,
+
+	showFactionIcon = true,
 
 	backdrop = {
 		bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -499,6 +500,7 @@ end
 GameTooltip:HookScript("OnTooltipCleared", tipCleared)
 
 gtSB:SetStatusBarTexture(cfg.tex)
+gtSB:SetHeight(9)
 local bg = gtSB:CreateTexture(nil, "BACKGROUND")
 bg:SetAllPoints(GameTooltipStatusBar)
 bg:SetTexture(cfg.tex)
