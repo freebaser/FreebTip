@@ -2,6 +2,7 @@ local ADDON_NAME, ns = ...
 
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
 local ITEM_LEVEL_ABBR = ITEM_LEVEL_ABBR
+local GetMouseFocus = GetMouseFocus
 local GameTooltip = GameTooltip
 local GetTime = GetTime
 
@@ -26,20 +27,29 @@ local function ShowiLvl(self, unit, uGUID)
 
 		self:Show()
 	elseif(not InspectFrame or (InspectFrame and not InspectFrame:IsShown())) then
-		cache[uGUID] = nil
+		if(cacheGUID) then cacheGUID = nil end
 		local caninspect, unitfound, refreshing = LibInspect:RequestData("items", unit, true)
 	end
 end
 
+local function getUnit()
+	local mFocus = GetMouseFocus()
+	local unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit")) or "mouseover"
+	return unit
+end
+
 local updateiLvl = CreateFrame"Frame"
 updateiLvl:SetScript("OnUpdate", function(self, elapsed)
-	local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
+	self.updateFreebiLvl = (self.updateFreebiLvl or 0) + elapsed
+	if(self.updateFreebiLvl < .12) then return end
 
+	local unit = getUnit()
 	local mGUID = UnitGUID(unit)
 	if(mGUID) then
 		ShowiLvl(GameTooltip, unit, mGUID)
 	end
 
+	self.updateFreebiLvl = 0
 	self:Hide()
 end)
 updateiLvl:Hide()
@@ -77,34 +87,24 @@ local function getItems(uGUID, data, age)
 	if(numItems > 0) then
 		local score = itemsTotal / numItems
 		cache[uGUID] = { ilvl = score, gtime = GetTime() }
-
-		-- delay output (prefer ilvl to be last in the tooltip)
 		updateiLvl:Show()
 	end
 end
-
 LibInspect:AddHook(ADDON_NAME, "items", function(...) getItems(...) end)
 
 local function OnSetUnit(self)
 	self.freebtipiLvlSet = false
 
-	local _, unit = self:GetUnit()
-	if(not unit) then
-		local mFocus = GetMouseFocus()
-		unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit"))
-
-		if(not unit) then
-			unit = "mouseover"
-		end
-	end
-
+	local unit = getUnit()
 	if(UnitExists(unit) and UnitIsPlayer(unit)) then
 		local canInspect = CanInspect(unit)
+		--local uGUID = UnitGUID(unit)
 
 		if(canInspect) then
+			--ShowiLvl(self, unit, uGUID)
+			self.updateFreebiLvl = .1
 			updateiLvl:Show()
 		end
 	end
 end
-
 GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)

@@ -18,6 +18,8 @@ local cfg = {
 	hidePvP = true,
 
 	showFactionIcon = true,
+	factionIconSize = 44,
+	factionIconAlpha = .5,
 
 	backdrop = {
 		bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -80,12 +82,13 @@ local PVP = PVP
 local FACTION_ALLIANCE = FACTION_ALLIANCE
 local FACTION_HORDE = FACTION_HORDE
 local LEVEL = LEVEL
-local CHAT_FLAG_AFK =CHAT_FLAG_AFK
+local CHAT_FLAG_AFK = CHAT_FLAG_AFK
 local CHAT_FLAG_DND = CHAT_FLAG_DND
 local ICON_LIST = ICON_LIST
 local targettext = TARGET
 local DEAD = DEAD
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+local FACTION_BAR_COLORS = FACTION_BAR_COLORS
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
 
 local INTERACTIVE_SERVER_LABEL = INTERACTIVE_SERVER_LABEL
@@ -117,6 +120,11 @@ local classification = {
 	rareelite = " |cff6699ffR+|r",
 }
 
+local factionIcon = {
+	["Alliance"] = "Interface\\Timer\\Alliance-Logo",
+	["Horde"] = "Interface\\Timer\\Horde-Logo",
+}
+
 local numberize = function(val)
 	if(val >= 1e6) then
 		return ("%.0fm"):format(val / 1e6)
@@ -135,18 +143,20 @@ local nilcolor = { r=1, g=1, b=1 }
 local tapped = { r=.6, g=.6, b=.6 }
 
 local function unitColor(unit)
-	if(not unit) then unit = "mouseover" end
-
 	local color
-	if(UnitIsPlayer(unit)) then
-		local _, class = UnitClass(unit)
-		color = RAID_CLASS_COLORS[class]
-	elseif(UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit)) then
-		color = tapped
-	else
-		local reaction = UnitReaction(unit, "player")
-		if(reaction) then
-			color = FACTION_BAR_COLORS[reaction]
+
+	if(unit) then
+		if(UnitIsPlayer(unit)) then
+			local colors = RAID_CLASS_COLORS
+			local _, class = UnitClass(unit)
+			color = colors[class]
+		elseif(UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit)) then
+			color = tapped
+		else
+			local reaction = UnitReaction(unit, "player")
+			if(reaction) then
+				color = FACTION_BAR_COLORS[reaction]
+			end
 		end
 	end
 
@@ -155,7 +165,17 @@ end
 
 local function GameTooltip_UnitColor(unit)
 	local color = unitColor(unit)
-	if(color) then return color.r, color.g, color.b end
+	return color.r, color.g, color.b
+end
+
+local function getUnit(self)
+	local _, unit = self and self:GetUnit()
+	if(not unit) then
+		local mFocus = GetMouseFocus()
+		unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit"))	or "mouseover"
+	end
+
+	return unit
 end
 
 local function formatLines(self)
@@ -225,7 +245,7 @@ local function UpdatePower(self, elapsed)
 	self.elapsed = self.elapsed + elapsed
 	if(self.elapsed < .25) then return end
 
-	local unit = self.unit
+	local unit = getUnit(GameTooltip)
 	if(unit) then
 		local min, max = UnitPower(unit), UnitPowerMax(unit)
 		if(max ~= 0) then
@@ -360,8 +380,7 @@ local function SetStatusBar(self, unit)
 	end
 
 	if(unit) then
-		local color = unitColor(unit)
-		GameTooltipStatusBar:SetStatusBarColor(color.r, color.g, color.b)
+		GameTooltipStatusBar:SetStatusBarColor(GameTooltip_UnitColor(unit))
 	else
 		GameTooltipStatusBar:SetStatusBarColor(0, .9, 0)
 	end
@@ -392,37 +411,31 @@ local function OnSetUnit(self)
 
 	hideLines(self)
 
-	local _, unit = self:GetUnit()
-	if(not unit) then
-		local mFocus = GetMouseFocus()
-		unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit"))
-
-		if(not unit) then
-			unit = "mouseover"
-		end
-	end
-
+	local unit = getUnit(self)
 	if(UnitExists(unit)) then
 		local isPlayer = UnitIsPlayer(unit)
 
 		if not (self.factionIcon) then
-			self.factionIcon = self:CreateTexture(nil, "OVERLAY")
-			self.factionIcon:SetPoint("TOPRIGHT", -3, -3)
+			self.factionIcon = self:CreateTexture(nil, "BORDER")
+			self.factionIcon:SetPoint("TOPRIGHT", 3, 3)
 		end
 
 		local faction = UnitFactionGroup(unit)
-		if(cfg.showFactionIcon and faction and isPlayer) then
-			self.factionIcon:SetAtlas("MountJournalIcons-"..faction, true)
+		if(cfg.showFactionIcon and faction and factionIcon[faction] and isPlayer) then
+			--self.factionIcon:SetAtlas("MountJournalIcons-"..faction, true)
+			self.factionIcon:SetTexture(factionIcon[faction])
+			self.factionIcon:SetSize(cfg.factionIconSize,cfg.factionIconSize)
+			self.factionIcon:SetAlpha(cfg.factionIconAlpha)
 			self.factionIcon:Show()
 		else
 			self.factionIcon:Hide()
 		end
 
+		local color = unitColor(unit)
 		local unitGuild, unitRank
 
 		if(isPlayer) then
 			PlayerTitle(self, unit)
-
 			unitGuild, unitRank = GetGuildInfo(unit)
 			PlayerGuild(self, unit, unitGuild, unitRank)
 		end
@@ -433,7 +446,6 @@ local function OnSetUnit(self)
 			GameTooltipTextLeft1:SetFormattedText(("%s %s"), ICON_LIST[ricon]..cfg.fontsize.."|t", text)
 		end
 
-		local color = unitColor(unit)
 		local line1 = GameTooltipTextLeft1:GetText()
 		GameTooltipTextLeft1:SetFormattedText(("%s"), hex(color)..line1)
 		GameTooltipTextLeft1:SetTextColor(GameTooltip_UnitColor(unit))
@@ -488,15 +500,16 @@ local function OnSetUnit(self)
 	self.freebHeightSet = nil
 	self.freebtipUpdate = 0
 end
-
 GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
 
 local tipCleared = function(self)
 	if(self.factionIcon) then
 		self.factionIcon:Hide()
 	end
+	if not (self.freebtipItem) then
+		self:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+	end
 end
-
 GameTooltip:HookScript("OnTooltipCleared", tipCleared)
 
 gtSB:SetStatusBarTexture(cfg.tex)
@@ -514,20 +527,16 @@ local function gtSBValChange(self, value)
 	if(value < min) or (value > max) then
 		return
 	end
-	local _, unit = GameTooltip:GetUnit()
-	if(unit) then
-		min, max = UnitHealth(unit), UnitHealthMax(unit)
-		if(not self.text) then
-			self.text = self:CreateFontString(nil, "OVERLAY")
-			self.text:SetPoint("CENTER", GameTooltipStatusBar)
-			self.text:SetFont(cfg.font, 12, cfg.outline)
-		end
-		self.text:Show()
-		local hp = numberize(min).." / "..numberize(max)
-		self.text:SetText(hp)
-	end
-end
 
+	if(not self.text) then
+		self.text = self:CreateFontString(nil, "OVERLAY")
+		self.text:SetPoint("CENTER", GameTooltipStatusBar)
+		self.text:SetFont(cfg.font, 12, cfg.outline)
+	end
+	self.text:Show()
+	local hp = numberize(self:GetValue()).." / "..numberize(max)
+	self.text:SetText(hp)
+end
 gtSB:SetScript("OnValueChanged", gtSBValChange)
 
 local itemTips = {}
@@ -535,22 +544,17 @@ local itemTips = {}
 local function style(frame)
 	if(not frame) then return end
 	local frameName = frame:GetName()
-	frame:SetScale(cfg.scale)
 
 	if(not frame.freebtipBD) then
 		frame:SetBackdrop(cfg.backdrop)
 		frame.freebtipBD = true
 	end
 	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
-
-	local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
-	if(cfg.colorborderClass and (UnitExists(unit) and UnitIsPlayer(unit))) then
-		frame:SetBackdropBorderColor(GameTooltip_UnitColor(unit))
-	else
-		frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
-	end
+	frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
+	frame:SetScale(cfg.scale)
 
 	if(cfg.colorborderItem and frame.GetItem) then
+		frame.freebtipItem = false
 		local _, item = frame:GetItem()
 		if(item) then
 			local quality = select(3, GetItemInfo(item))
@@ -558,6 +562,7 @@ local function style(frame)
 				local r, g, b = GetItemQualityColor(quality)
 				frame:SetBackdropBorderColor(r, g, b)
 				itemTips[frameName] = nil
+				frame.freebtipItem = true
 			else
 				itemTips[frameName] = true
 			end
@@ -658,12 +663,16 @@ local function GT_OnUpdate(self, elapsed)
 
 	self.freebtipUpdate = (self.freebtipUpdate or timer) - elapsed
 	if(self.freebtipUpdate > 0) then return end
-
 	self.freebtipUpdate = timer
 
-	local unit = GetMouseFocus() and GetMouseFocus().unit or "mouseover"
-	if(UnitExists(unit)) then
+	local unit = getUnit(self)
+	if(self:IsUnit(unit)) then
 		hideLines(self)
+
+		if(cfg.colorborderClass and UnitIsPlayer(unit)) then
+			local color = unitColor(unit)
+			self:SetBackdropBorderColor(color.r,color.g,color.b)
+		end
 	end
 
 	local numLines = self:NumLines()
@@ -684,23 +693,20 @@ local function GT_OnUpdate(self, elapsed)
 
 	formatLines(self)
 end
+GameTooltip:HookScript("OnUpdate", GT_OnUpdate)
 
 -- Because if you're not hacking, you're doing it wrong
 local function OverrideGetBackdropColor()
 	return cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t
 end
-
 GameTooltip.GetBackdropColor = OverrideGetBackdropColor
-GameTooltip:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+GameTooltip:SetBackdropColor(OverrideGetBackdropColor)
 
 local function OverrideGetBackdropBorderColor()
 	return cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b
 end
-
 GameTooltip.GetBackdropBorderColor = OverrideGetBackdropBorderColor
-GameTooltip:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
-
-GameTooltip:HookScript("OnUpdate", GT_OnUpdate)
+GameTooltip:SetBackdropBorderColor(OverrideGetBackdropBorderColor)
 
 GameTooltipHeaderText:SetFont(cfg.font, cfg.fontsize+2, cfg.outline)
 GameTooltipText:SetFont(cfg.font, cfg.fontsize, cfg.outline)
