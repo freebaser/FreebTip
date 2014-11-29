@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibItemUpgradeInfo-1.0", 5
+local MAJOR, MINOR = "LibItemUpgradeInfo-1.0", 6
 
 local lib = _G.LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
@@ -141,9 +141,53 @@ function lib:GetItemUpgradeInfo(itemString)
 	return nil
 end
 
+-- GetHeirloomTrueLevel(itemString)
+--
+-- Returns the true item level for an heirloom.
+--
+-- Arguments:
+--   itemString - String - An itemLink or itemString denoting the item
+--
+-- Returns:
+--   Number, Boolean - The true item level of the item. If the item is not
+--                     an heirloom, or an error occurs when trying to scan the
+--                     item tooltip, the second return value is false. Otherwise
+--                     the second return value is true. If the input is invalid,
+--                     (nil, false) is returned.
+do
+	local scanningTooltip
+	local heirloomCache = {}
+	function lib:GetHeirloomTrueLevel(itemString)
+		local _, itemLink, rarity, itemLevel = GetItemInfo(itemString)
+		if rarity == _G.LE_ITEM_QUALITY_HEIRLOOM then
+			local ilvl = heirloomCache[itemLink]
+			if ilvl ~= nil then
+				return ilvl, true
+			end
+			if not scanningTooltip then
+				scanningTooltip = _G.CreateFrame("GameTooltip", "LibItemUpgradeInfoTooltip", nil, "GameTooltipTemplate")
+				scanningTooltip:SetOwner(_G.WorldFrame, "ANCHOR_NONE")
+			end
+			scanningTooltip:ClearLines()
+			scanningTooltip:SetHyperlink(itemLink)
+			-- line 1 is the item name
+			-- line 2 may be the item level, or it may be a modifier like "Heroic"
+			-- check up to line 4 just in case
+			for i = 2, 4 do
+				ilvl = tonumber(_G["LibItemUpgradeInfoTooltipTextLeft"..i]:GetText():match("Item Level (%d+)"))
+				if ilvl ~= nil then
+					heirloomCache[itemLink] = ilvl
+					return ilvl, true
+				end
+			end
+		end
+		return itemLevel, false
+	end
+end
+
 -- GetUpgradedItemLevel(itemString)
 --
--- Returns the true item level of the item, including upgrades.
+-- Returns the true item level of the item, including upgrades and heirlooms.
 --
 -- Arguments:
 --   itemString - String - An itemLink or itemString denoting the item
@@ -151,7 +195,12 @@ end
 -- Returns:
 --   Number - The true item level of the item, or nil if the input is invalid
 function lib:GetUpgradedItemLevel(itemString)
-	local ilvl = select(4, _G.GetItemInfo(itemString))
+	-- check for heirlooms first
+	local ilvl, isTrue = self:GetHeirloomTrueLevel(itemString)
+	if isTrue then
+		return ilvl
+	end
+	-- not an heirloom? fall back to the regular item logic
 	local id = self:GetUpgradeID(itemString)
 	if ilvl and id then
 		ilvl = ilvl + self:GetItemLevelUpgrade(id)
@@ -162,7 +211,6 @@ end
 --[===========[ ]===========]
 --[===[ Debug utilities ]===]
 --[===========[ ]===========]
-
 
 local function compareTables(t1, t2)
 	local seen = {}
@@ -257,7 +305,7 @@ do
 			end)
 		end
 		if not debugTooltip then
-			debugTooltip = _G.CreateFrame("GameTooltip", "LibItemUpgradeInfoTooltip", nil, "GameTooltipTemplate")
+			debugTooltip = _G.CreateFrame("GameTooltip", "LibItemUpgradeInfoDebugTooltip", nil, "GameTooltipTemplate")
 			debugTooltip:SetOwner(_G.WorldFrame, "ANCHOR_NONE")
 		end
 		newTable = {}
@@ -271,9 +319,9 @@ do
 				debugTooltip:ClearLines()
 				debugTooltip:SetHyperlink(link)
 				local upgrade, max
-				local curLevel, maxLevel = _G.LibItemUpgradeInfoTooltipTextLeft3:GetText():match("^Upgrade Level: (%d+)/(%d+)")
-				local ilvl = tonumber(_G.LibItemUpgradeInfoTooltipTextLeft2:GetText():match("Item Level (%d+)"))
-				assert(ilvl ~= nil, "Can't find ItemLevel in tooltip: " .. _G.LibItemUpgradeInfoTooltipTextLeft2:GetText())
+				local curLevel, maxLevel = _G.LibItemUpgradeInfoDebugTooltipTextLeft3:GetText():match("^Upgrade Level: (%d+)/(%d+)")
+				local ilvl = tonumber(_G.LibItemUpgradeInfoDebugTooltipTextLeft2:GetText():match("Item Level (%d+)"))
+				assert(ilvl ~= nil, "Can't find ItemLevel in tooltip: " .. _G.LibItemUpgradeInfoDebugTooltipTextLeft2:GetText())
 				if curLevel or maxLevel or ilvl ~= itemLevel then
 					newTable[i] = { upgrade = tonumber(curLevel), max = tonumber(maxLevel), ilevel = ilvl - itemLevel }
 				end

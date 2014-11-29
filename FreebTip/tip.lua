@@ -422,7 +422,6 @@ local function OnSetUnit(self)
 
 		local faction = UnitFactionGroup(unit)
 		if(cfg.showFactionIcon and faction and factionIcon[faction] and isPlayer) then
-			--self.factionIcon:SetAtlas("MountJournalIcons-"..faction, true)
 			self.factionIcon:SetTexture(factionIcon[faction])
 			self.factionIcon:SetSize(cfg.factionIconSize,cfg.factionIconSize)
 			self.factionIcon:SetAlpha(cfg.factionIconAlpha)
