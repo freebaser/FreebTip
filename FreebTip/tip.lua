@@ -48,7 +48,6 @@ local cfg = {
 	gcolor = { r=1, g=0.1, b=0.8 }, -- guild
 
 	you = "<You>",
-	boss = BOSS,
 
 	colorborderClass = false,
 	colorborderItem = true,
@@ -87,6 +86,7 @@ local CHAT_FLAG_DND = CHAT_FLAG_DND
 local ICON_LIST = ICON_LIST
 local targettext = TARGET
 local DEAD = DEAD
+local BOSS = BOSS
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
 local FACTION_BAR_COLORS = FACTION_BAR_COLORS
 local NORMAL_FONT_COLOR = NORMAL_FONT_COLOR
@@ -118,6 +118,7 @@ local classification = {
 	elite = "+",
 	rare = " |cff6699ffR|r",
 	rareelite = " |cff6699ffR+|r",
+	worldboss = (" |cffFF0000%s|r"):format(BOSS)
 }
 
 local factionIcon = {
@@ -139,6 +140,7 @@ local hex = function(color)
 	return (color.r and format('|cff%02x%02x%02x', color.r * 255, color.g * 255, color.b * 255)) or "|cffFFFFFF"
 end
 
+local qqColor = { r=1, g=0, b=0 }
 local nilcolor = { r=1, g=1, b=1 }
 local tapped = { r=.6, g=.6, b=.6 }
 
@@ -461,15 +463,18 @@ local function OnSetUnit(self)
 		if(level) then
 			local unitClass = isPlayer and ("%s %s"):format((UnitRace(unit) or ""), hex(color)..(UnitClass(unit) or "").."|r") or ""
 			local creature = not isPlayer and UnitCreatureType(unit) or ""
-			local diff = GetQuestDifficultyColor(level)
 
-			local boss
+			local diff
 			if(level == -1) then
-				boss = "|cffff0000"..cfg.boss
+				level = "??"
+				diff = qqColor
+			else
+				level = ("%d"):format(level)
+				diff = GetQuestDifficultyColor(level)
 			end
 
 			local classify = UnitClassification(unit) or ""
-			local textLevel = ("%s%s%s|r"):format(hex(diff), boss or ("%d"):format(level), not boss and classification[classify] or "")
+			local textLevel = ("%s%s%s|r"):format(hex(diff), level, classification[classify] or "")
 
 			local tiptextLevel
 			for i=(unitGuild and 3) or 2, self:NumLines() do
