@@ -152,7 +152,7 @@ local function unitColor(unit)
 			local colors = RAID_CLASS_COLORS
 			local _, class = UnitClass(unit)
 			color = colors[class]
-		elseif(UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit)) then
+		elseif(UnitIsTapDenied(unit)) then
 			color = tapped
 		else
 			local reaction = UnitReaction(unit, "player")
