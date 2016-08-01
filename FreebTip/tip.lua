@@ -152,7 +152,7 @@ local function unitColor(unit)
 			local colors = RAID_CLASS_COLORS
 			local _, class = UnitClass(unit)
 			color = colors[class]
-		elseif(UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit)) then
+		elseif(UnitIsTapDenied(unit)) then
 			color = tapped
 		else
 			local reaction = UnitReaction(unit, "player")
@@ -181,19 +181,22 @@ local function getUnit(self)
 end
 
 local function formatLines(self)
-	for i=1, self:NumLines() do
+	
+	for i=1, self:NumLines(), -1 do
 		local tiptext = _G["GameTooltipTextLeft"..i]
 		local point, relTo, relPoint, x, y = tiptext:GetPoint()
 		tiptext:ClearAllPoints()
+		
+		
 
 		if(i==1) then
-			tiptext:SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
+			--tiptext:SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
 		else
 			local key = i-1
 
 			while(true) do
 				local preTiptext = _G["GameTooltipTextLeft"..key]
-
+				
 				if(preTiptext and not preTiptext:IsShown()) then
 					key = key-1
 				else
@@ -201,7 +204,7 @@ local function formatLines(self)
 				end
 			end
 
-			tiptext:SetPoint("TOPLEFT", _G["GameTooltipTextLeft"..key], "BOTTOMLEFT", x, -2)
+			tiptext:SetPoint("TOPLEFT", _G["GameTooltipTextLeft"..key], "BOTTOMLEFT", x, -3)
 		end
 	end
 end
