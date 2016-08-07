@@ -9,11 +9,13 @@ local UnitGUID = UnitGUID
 
 local LibInspect = LibStub("LibInspect")
 
-local maxage = 1800 --number of secs to cache each player
+local maxage = 900 --number of secs to cache each player
 LibInspect:SetMaxAge(maxage)
 
-local cache = {}
-local specText = "|cffFFFFFF%s|r"
+local cache = {
+	specText = "|cffFFFFFF%s|r"
+}
+FreebTipSpec_cache = cache
 
 local function getUnit()
 	local mFocus = GetMouseFocus()
@@ -23,7 +25,7 @@ end
 
 local function ShowSpec(spec)
 	if(not GameTooltip.freebtipSpecSet) then
-		GameTooltip:AddDoubleLine(SPECIALIZATION, specText:format(spec), NORMAL_FONT_COLOR.r,
+		GameTooltip:AddDoubleLine(SPECIALIZATION, cache.specText:format(spec), NORMAL_FONT_COLOR.r,
 		NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 		GameTooltip.freebtipSpecSet = true
 		GameTooltip:Show()
@@ -63,10 +65,13 @@ end
 LibInspect:AddHook(ADDON_NAME, "talents", function(...) getTalents(...) end)
 
 local function OnSetUnit(self)
-	self.freebtipSpecSet = false
-
 	local unit = getUnit()
 	local caninspect = LibInspect:RequestData("items", unit)
 	specUpdate:Show()
 end
 GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
+
+local tipCleared = function(self)
+	self.freebtipSpecSet = false
+end
+GameTooltip:HookScript("OnTooltipCleared", tipCleared)

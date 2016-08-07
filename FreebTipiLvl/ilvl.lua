@@ -10,11 +10,13 @@ local UnitGUID = UnitGUID
 local ItemUpgradeInfo = LibStub("LibItemUpgradeInfo-1.0")
 local LibInspect = LibStub("LibInspect")
 
-local maxage = 1800 --number of secs to cache each player
+local maxage = 900 --number of secs to cache each player
 LibInspect:SetMaxAge(maxage)
 
-local cache = {}
-local ilvlText = "|cffFFFFFF%d|r"
+local cache = {
+	ilvlText = "|cffFFFFFF%d|r"
+}
+FreebTipiLvl_cache = cache
 
 local function getUnit()
 	local mFocus = GetMouseFocus()
@@ -24,7 +26,7 @@ end
 
 local function ShowiLvl(score)
 	if(not GameTooltip.freebtipiLvlSet) then
-		GameTooltip:AddDoubleLine(ITEM_LEVEL_ABBR, ilvlText:format(score), NORMAL_FONT_COLOR.r,
+		GameTooltip:AddDoubleLine(ITEM_LEVEL_ABBR, cache.ilvlText:format(score), NORMAL_FONT_COLOR.r,
 		NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 		GameTooltip.freebtipiLvlSet = true
 		GameTooltip:Show()
@@ -91,10 +93,13 @@ end
 LibInspect:AddHook(ADDON_NAME, "items", function(...) getItems(...) end)
 
 local function OnSetUnit(self)
-	self.freebtipiLvlSet = false
-
 	local unit = getUnit()
 	local caninspect = LibInspect:RequestData("items", unit)
 	iLvlUpdate:Show()
 end
 GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
+
+local tipCleared = function(self)
+	self.freebtipiLvlSet = false
+end
+GameTooltip:HookScript("OnTooltipCleared", tipCleared)
