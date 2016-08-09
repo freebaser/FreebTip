@@ -25,6 +25,8 @@ local settings = {
 
 	factionIconSize = 30,
 	factionIconAlpha = 1,
+
+	pBar = false,
 }
 
 if(freebDebug) then
@@ -48,6 +50,13 @@ local qqColor = { r=1, g=0, b=0 }
 local nilColor = { r=1, g=1, b=1 }
 local tappedColor = { r=.6, g=.6, b=.6 }
 local deadColor = { r=.6, g=.6, b=.6 }
+
+local powerColors = {}
+for power, color in next, PowerBarColor do
+	powerColors[power] = color
+end
+powerColors['MANA'] = { r=.31, g=.45, b=.72 }
+powerColors['RAGE'] = { r=.69, g=.31, b=.31 }
 
 local classification = {
 	elite = ("|cffFFCC00 %s|r"):format(ELITE),
@@ -339,7 +348,24 @@ local function OnSetUnit(self)
 			end
 		end
 
+		if(cfg.pBar) then
+			self.ftipPowerBar.unit = unit
+			local pMin, pMax = UnitPower(unit), UnitPowerMax(unit)
+			if(pMin > 0) then
+				self.ftipPowerBar:SetMinMaxValues(0, pMax)
+				self.ftipPowerBar:SetValue(pMin)
+
+				local pType, pToken = UnitPowerType(unit)
+				local pColor = powerColors[pToken]
+				self.ftipPowerBar:SetStatusBarColor(pColor.r, pColor.g, pColor.b)
+				self.ftipPowerBar:Show()
+			else
+				self.ftipPowerBar:Hide()
+			end
+		end
+
 		ShowTarget(self, unit)
+
 		check4Spec(self, guid)
 		check4Ilvl(self, guid)
 	end
@@ -367,10 +393,10 @@ local function GTUpdate(self, elapsed)
 	local numLines = self:NumLines()
 	self.ftipNumLines = self.ftipNumLines or 0
 	if not (self.ftipNumLines == numLines) then
-		--[[if(GameTooltipStatusBar:IsShown()) then
-			local height = GameTooltipStatusBar:GetHeight()-2
+		if(GameTooltipStatusBar:IsShown() and self.ftipPowerBar:IsShown()) then
+			local height = (GameTooltipStatusBar:GetHeight() * 2)-2
 			self:SetHeight((self:GetHeight()+height))
-		end]]
+		end
 
 		formatLines(self)
 	end
@@ -384,15 +410,15 @@ GameTooltip:HookScript("OnUpdate", GTUpdate)
 --[[ GameTooltipStatusBar ]]--
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.statusbar)
-GameTooltipStatusBar:SetHeight(2)
+GameTooltipStatusBar:SetHeight(3)
 GameTooltipStatusBar:ClearAllPoints()
 GameTooltipStatusBar:SetPoint("BOTTOMLEFT", 8, 5)
 GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", -8, 5)
 
-local bg = GameTooltipStatusBar:CreateTexture(nil, "BACKGROUND")
-bg:SetAllPoints(GameTooltipStatusBar)
-bg:SetTexture(cfg.statusbar)
-bg:SetVertexColor(0.3, 0.3, 0.3, 0.5)
+local gtSBbg = GameTooltipStatusBar:CreateTexture(nil, "BACKGROUND")
+gtSBbg:SetAllPoints(GameTooltipStatusBar)
+gtSBbg:SetTexture(cfg.statusbar)
+gtSBbg:SetVertexColor(0.3, 0.3, 0.3, 0.5)
 
 local function gtSBValChange(self, value)
 	if(not value) then
@@ -423,6 +449,42 @@ function GameTooltipStatusBar:SetStatusBarColor(...)
 		return self:_SetStatusBarColor(unitColor(unit))
 	end
 end
+
+-------------------------------------------------------------------------------
+--[[ FreebTipPowerBar ]]--
+
+local powerbar = CreateFrame("StatusBar", "FreebTipPowerBar", GameTooltipStatusBar)
+powerbar:SetFrameLevel(GameTooltipStatusBar:GetFrameLevel())
+powerbar:SetHeight(GameTooltipStatusBar:GetHeight())
+powerbar:SetWidth(0)
+powerbar:SetStatusBarTexture(cfg.statusbar)
+powerbar:ClearAllPoints()
+powerbar:SetPoint("BOTTOMLEFT", GameTooltipStatusBar, "TOPLEFT", 0, 1)
+powerbar:SetPoint("BOTTOMRIGHT", GameTooltipStatusBar, "TOPRIGHT", 0, 1)
+powerbar:Hide()
+GameTooltip.ftipPowerBar = powerbar
+
+local function UpdatePower(self, elapsed)
+	self.elapsed = (self.elapsed or 0) + elapsed
+	if(self.elapsed < .2) then return end
+	self.elapsed = 0
+
+	local unit = self.unit
+	if(UnitExists(unit)) then
+		local pMin, pMax = UnitPower(unit), UnitPowerMax(unit)
+		if(pMin > 0) then
+			self:SetMinMaxValues(0, pMax)
+			self:SetValue(pMin)
+		end
+	end
+end
+powerbar:SetScript("OnUpdate", UpdatePower)
+
+local gtPBbg = powerbar:CreateTexture(nil, "BACKGROUND")
+gtPBbg:SetAllPoints(powerbar)
+gtPBbg:SetTexture(cfg.statusbar)
+gtPBbg:SetVertexColor(0.3, 0.3, 0.3, 0.5)
+
 -------------------------------------------------------------------------------
 --[[ Style ]] --
 
