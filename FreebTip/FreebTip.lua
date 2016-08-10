@@ -4,7 +4,7 @@ local mediapath = "Interface\\AddOns\\"..ADDON_NAME.."\\media\\"
 
 --[[ Defaults. OVERRIDE THESE IN SETTINGS.LUA ]]--
 local settings = {
-	font = "Fonts\\FRIZQT__.ttf",
+	font = STANDARD_TEXT_FONT,
 	fontflag = "OUTLINE",
 
 	scale = 1.1,
@@ -27,6 +27,9 @@ local settings = {
 	factionIconAlpha = 1,
 
 	pBar = false,
+
+	guildText = "|cffE93699<%s>|r |cffA0A0A0%s|r",
+	YOU = "<YOU>",
 }
 
 if(freebDebug) then
@@ -161,7 +164,7 @@ end
 
 local function getTarget(unit)
 	if(UnitIsUnit(unit, "player")) then
-		return ("|cffff0000%s|r"):format("<YOU>")
+		return ("|cffff0000%s|r"):format(cfg.YOU)
 	else
 		return UnitName(unit)
 	end
@@ -196,27 +199,27 @@ local function hideLines(self)
 end
 
 local function formatLines(self)
-	for i=2, self:NumLines() do
+	local hidden = {}
+	local numLines = self:NumLines()
+
+	for i=2, numLines do
 		local tipLine = _G["GameTooltipTextLeft"..i]
 
 		if(tipLine and not tipLine:IsShown()) then
-			local key = i+1
-
-			while(true) do
-				local nextLine = _G["GameTooltipTextLeft"..key]
-
-				if(nextLine and nextLine:IsShown()) then
-					local point, relativeTo, relativePoint, x, y = tipLine:GetPoint()
-					nextLine:SetPoint(point, relativeTo, relativePoint, x, y)
-					break
-				end
-
-				if(key >= self:NumLines()) then break end
-
-				key = key+1
-			end
+			hidden[i] = tipLine
 		end
 	end
+
+	for i, line in next, hidden do
+		local nextLine = _G["GameTooltipTextLeft"..i+1]
+
+		if(nextLine) then
+			local point, relativeTo, relativePoint, x, y = line:GetPoint()
+			nextLine:SetPoint(point, relativeTo, relativePoint, x, y)
+		end
+	end
+
+	self.ftipNumLines = numLines
 end
 
 local function check4Spec(self, guid)
@@ -269,7 +272,7 @@ local function OnSetUnit(self)
 			local guild, gRank = GetGuildInfo(unit)
 			if(guild and gRank) then
 				isInGuild = true
-				GameTooltipTextLeft2:SetFormattedText("|cffed21fa<%s>|r |cff00d9af%s|r", guild, gRank or "")
+				GameTooltipTextLeft2:SetFormattedText(cfg.guildText, guild, gRank or "")
 			end
 		end
 
@@ -401,7 +404,6 @@ local function GTUpdate(self, elapsed)
 		formatLines(self)
 	end
 
-	self.ftipNumLines = numLines
 	self.ftipUpdate = 0
 end
 GameTooltip:HookScript("OnUpdate", GTUpdate)
@@ -410,7 +412,7 @@ GameTooltip:HookScript("OnUpdate", GTUpdate)
 --[[ GameTooltipStatusBar ]]--
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.statusbar)
-GameTooltipStatusBar:SetHeight(3)
+GameTooltipStatusBar:SetHeight(2)
 GameTooltipStatusBar:ClearAllPoints()
 GameTooltipStatusBar:SetPoint("BOTTOMLEFT", 8, 5)
 GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", -8, 5)
