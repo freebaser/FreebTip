@@ -5,7 +5,7 @@ local mediapath = "Interface\\AddOns\\"..ADDON_NAME.."\\media\\"
 --[[ Defaults. OVERRIDE THESE IN SETTINGS.LUA ]]--
 local settings = {
 	--font = STANDARD_TEXT_FONT,
-	font = mediapath.."font.ttf"
+	font = mediapath.."font.ttf",
 	fontflag = "OUTLINE",
 
 	scale = 1.1,
@@ -23,13 +23,22 @@ local settings = {
 	bdrcolor = { r=0, g=0, b=0 }, -- border
 
 	statusbar = mediapath.."statusbar",
+	sbHeight = 2,
 
 	factionIconSize = 30,
 	factionIconAlpha = 1,
 
 	pBar = false,
+	fadeOnUnit = false,
+	combathide = false,
+	combathideALL = false,
 
+	showGRank = true,
 	guildText = "|cffE41F9B<%s>|r |cffA0A0A0%s|r",
+
+	showRealm = true,
+	realmText = " (*)",
+
 	YOU = "<YOU>",
 }
 
@@ -153,11 +162,19 @@ local function getPlayer(unit)
 		local class, _, race, _, _, name, realm = GetPlayerInfoByGUID(guid)
 		if not name then return end
 
+		if(realm and realm ~= "") then
+			if(cfg.showRealm) then
+				realm = ("-"..realm)
+			else
+				realm = cfg.realmText
+			end
+		end
+
 		Cache[guid] = {
 			name = name,
 			class = class,
 			race = race,
-			realm = realm and ((realm ~= "") and (" - "..realm)),
+			realm = realm,
 		}
 	end
 	return Cache[guid], guid
@@ -219,8 +236,6 @@ local function formatLines(self)
 			nextLine:SetPoint(point, relativeTo, relativePoint, x, y)
 		end
 	end
-
-	self.ftipNumLines = numLines
 end
 
 local function check4Spec(self, guid)
@@ -249,6 +264,10 @@ end
 --[[ GameTooltip HookScripts ]] --
 
 local function OnSetUnit(self)
+	if(cfg.combathide and InCombatLockdown()) then
+		return self:Hide()
+	end
+
 	hideLines(self)
 
 	if(not self.factionIcon) then
@@ -256,12 +275,14 @@ local function OnSetUnit(self)
 		self.factionIcon:SetPoint("TOPRIGHT", 8, 8)
 		self.factionIcon:SetSize(cfg.factionIconSize,cfg.factionIconSize)
 		self.factionIcon:SetAlpha(cfg.factionIconAlpha)
-	end	
+	end
 
 	local unit = getUnit(self)
 	local player, guid, isInGuild
 
 	if(UnitExists(unit)) then
+		self.ftipUnit = unit
+
 		local isPlayer = UnitIsPlayer(unit)
 
 		if(isPlayer) then
@@ -271,8 +292,10 @@ local function OnSetUnit(self)
 			if(Name) then GameTooltipTextLeft1:SetText(Name) end
 
 			local guild, gRank = GetGuildInfo(unit)
-			if(guild and gRank) then
+			if(guild) then
 				isInGuild = true
+
+				if(not cfg.showGRank) then gRank = nil end
 				GameTooltipTextLeft2:SetFormattedText(cfg.guildText, guild, gRank or "")
 			end
 		end
@@ -350,10 +373,11 @@ local function OnSetUnit(self)
 					levelLine:SetFormattedText("%s |cff00FF00(%s)|r", lvltxt, PVP)
 				end
 			end
+
+			GameTooltipStatusBar:SetStatusBarColor(unitColor(unit))
 		end
 
 		if(cfg.pBar) then
-			self.ftipPowerBar.unit = unit
 			local pMin, pMax = UnitPower(unit), UnitPowerMax(unit)
 			if(pMin > 0) then
 				self.ftipPowerBar:SetMinMaxValues(0, pMax)
@@ -385,6 +409,7 @@ local tipCleared = function(self)
 
 	self.ftipUpdate = 1
 	self.ftipNumLines = 0
+	self.ftipUnit = nil
 end
 GameTooltip:HookScript("OnTooltipCleared", tipCleared)
 
@@ -392,28 +417,47 @@ local function GTUpdate(self, elapsed)
 	self.ftipUpdate = (self.ftipUpdate or 0) + elapsed
 	if(self.ftipUpdate < .1) then return end
 
+	if(not cfg.fadeOnUnit) then
+		if(self.ftipUnit and not UnitExists(self.ftipUnit)) then self:Hide() return end
+	end
+
 	self:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
 
 	local numLines = self:NumLines()
 	self.ftipNumLines = self.ftipNumLines or 0
 	if not (self.ftipNumLines == numLines) then
-		if(GameTooltipStatusBar:IsShown() and self.ftipPowerBar:IsShown()) then
-			local height = (GameTooltipStatusBar:GetHeight() * 2)-2
+		if(GameTooltipStatusBar:IsShown()) then
+			local height
+
+			if(self.ftipPowerBar:IsShown()) then
+				height = (GameTooltipStatusBar:GetHeight() * 2)-2
+			else
+				height = GameTooltipStatusBar:GetHeight()-2
+			end
+
 			self:SetHeight((self:GetHeight()+height))
 		end
 
 		formatLines(self)
+
+		self.ftipNumLines = numLines
 	end
 
 	self.ftipUpdate = 0
 end
 GameTooltip:HookScript("OnUpdate", GTUpdate)
 
+GameTooltip.FadeOut = function(self)
+	if(not cfg.fadeOnUnit) then
+		self:Hide()
+	end
+end
+
 -------------------------------------------------------------------------------
 --[[ GameTooltipStatusBar ]]--
 
 GameTooltipStatusBar:SetStatusBarTexture(cfg.statusbar)
-GameTooltipStatusBar:SetHeight(2)
+GameTooltipStatusBar:SetHeight(cfg.sbHeight)
 GameTooltipStatusBar:ClearAllPoints()
 GameTooltipStatusBar:SetPoint("BOTTOMLEFT", 8, 5)
 GameTooltipStatusBar:SetPoint("BOTTOMRIGHT", -8, 5)
@@ -472,7 +516,7 @@ local function UpdatePower(self, elapsed)
 	if(self.elapsed < .2) then return end
 	self.elapsed = 0
 
-	local unit = self.unit
+	local unit = GameTooltip.ftipUnit
 	if(UnitExists(unit)) then
 		local pMin, pMax = UnitPower(unit), UnitPowerMax(unit)
 		if(pMin > 0) then
@@ -520,7 +564,6 @@ local itemUpdate = {}
 local function style(frame)
 	local frameName = frame and frame:GetName()
 	if not (frameName) then return end
-	ns.Debug(frameName)
 
 	if(not frame.ftipBD) then
 		frame:SetBackdrop(cfg.backdrop)
@@ -551,8 +594,6 @@ local function style(frame)
 			_G[frameName.."MoneyFrame"..i.."GoldButtonText"]:SetFontObject(GameTooltipText)
 			_G[frameName.."MoneyFrame"..i.."SilverButtonText"]:SetFontObject(GameTooltipText)
 			_G[frameName.."MoneyFrame"..i.."CopperButtonText"]:SetFontObject(GameTooltipText)
-
-			ns.Debug("mframe update")
 		end
 
 		frame.ftipNumMFrames = frame.numMoneyFrames
@@ -568,10 +609,6 @@ local function style(frame)
 		_G[frameName.."TextRight4"]:SetFontObject(GameTooltipTextSmall)
 
 		frame.ftipFontSet = true
-	end
-
-	if(frame.BorderTopLeft) then
-		
 	end
 
 	if(frame.BattlePet and not frame.ftipBPfont) then
@@ -619,8 +656,10 @@ frameload:SetScript("OnEvent", function(self)
 	self:UnregisterEvent"PLAYER_ENTERING_WORLD"
 
 	local function hook(tip)
-		ns.Debug(frame:GetName())
 		frame:HookScript("OnShow", function(self)
+			if(cfg.combathideALL and InCombatLockdown()) then
+				return self:Hide()
+			end
 			style(self)
 		end)
 	end
