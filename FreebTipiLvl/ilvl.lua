@@ -49,18 +49,11 @@ iLvlUpdate:SetScript("OnUpdate", function(self, elapsed)
 	self:Hide()
 end)
 
-local slots = { "Back", "Chest", "Feet", "Finger0", "Finger1", "Hands", "Head", "Legs",
-"MainHand", "Neck", "SecondaryHand", "Shoulder", "Trinket0", "Trinket1", "Waist", "Wrist" }
-
-local slotIDs = {}
-for i, slot in next, slots do
-	local slotName = slot.."Slot"
-	local id = GetInventorySlotInfo(slotName)
-
-	if(id) then
-		slotIDs[i] = id
-	end
-end
+local slotIDs = {
+	INVSLOT_HEAD,INVSLOT_NECK,INVSLOT_SHOULDER,INVSLOT_CHEST,INVSLOT_WAIST,
+	INVSLOT_LEGS,INVSLOT_FEET,INVSLOT_WRIST,INVSLOT_HAND,INVSLOT_FINGER1,INVSLOT_FINGER2,
+	INVSLOT_TRINKET1,INVSLOT_TRINKET2,INVSLOT_BACK,INVSLOT_MAINHAND,INVSLOT_OFFHAND
+}
 
 local function getItems(guid, data, age)
 	if((not guid) or (data and type(data.items) ~= "table")) then return end
@@ -71,7 +64,7 @@ local function getItems(guid, data, age)
 	end
 
 	local numItems = 0
-	local itemsTotal = 0
+	local itemsScore = 0
 
 	for i, id in next, slotIDs do
 		local link = data.items[id]
@@ -80,12 +73,12 @@ local function getItems(guid, data, age)
 			local ilvl = ItemUpgradeInfo:GetUpgradedItemLevel(link)
 
 			numItems = numItems + 1
-			itemsTotal = itemsTotal + ilvl
+			itemsScore = itemsScore + ilvl
 		end
 	end
 
 	if(numItems > 0) then
-		local score = itemsTotal / numItems
+		local score = itemsScore / numItems
 		cache[guid] = { score = score, time = GetTime() }
 		iLvlUpdate:Show()
 	end

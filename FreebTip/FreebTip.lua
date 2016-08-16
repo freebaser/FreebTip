@@ -4,7 +4,8 @@ local mediapath = "Interface\\AddOns\\"..ADDON_NAME.."\\media\\"
 
 --[[ Defaults. OVERRIDE THESE IN SETTINGS.LUA ]]--
 local settings = {
-	font = STANDARD_TEXT_FONT,
+	--font = STANDARD_TEXT_FONT,
+	font = mediapath.."font.ttf"
 	fontflag = "OUTLINE",
 
 	scale = 1.1,
@@ -28,7 +29,7 @@ local settings = {
 
 	pBar = false,
 
-	guildText = "|cffE93699<%s>|r |cffA0A0A0%s|r",
+	guildText = "|cffE41F9B<%s>|r |cffA0A0A0%s|r",
 	YOU = "<YOU>",
 }
 
