@@ -4,7 +4,6 @@ local mediapath = "Interface\\AddOns\\"..ADDON_NAME.."\\media\\"
 
 --[[ Defaults. OVERRIDE THESE IN SETTINGS.LUA ]]--
 local settings = {
-	--font = STANDARD_TEXT_FONT,
 	font = mediapath.."font.ttf",
 	fontflag = "OUTLINE",
 
@@ -19,21 +18,23 @@ local settings = {
 		insets = { left = 3, right = 3, top = 3, bottom = 3 },
 	},
 
-	bgcolor = { r=10/255, g=10/255, b=10/255, t=1 }, -- background
+	bgcolor = { r=.05, g=.05, b=.05, t=1 }, -- background
 	bdrcolor = { r=0, g=0, b=0 }, -- border
 
 	statusbar = mediapath.."statusbar",
 	sbHeight = 2,
+	sbText = false,
+
+	pBar = false,
 
 	factionIconSize = 30,
 	factionIconAlpha = 1,
 
-	pBar = false,
 	fadeOnUnit = false,
 	combathide = false,
 	combathideALL = false,
 
-	showGRank = true,
+	showGRank = false,
 	guildText = "|cffE41F9B<%s>|r |cffA0A0A0%s|r",
 
 	showRealm = true,
@@ -68,8 +69,7 @@ local powerColors = {}
 for power, color in next, PowerBarColor do
 	powerColors[power] = color
 end
-powerColors['MANA'] = { r=.31, g=.45, b=.72 }
-powerColors['RAGE'] = { r=.69, g=.31, b=.31 }
+powerColors["MANA"] = { r=.31, g=.45, b=.63 }
 
 local classification = {
 	elite = ("|cffFFCC00 %s|r"):format(ELITE),
@@ -384,7 +384,7 @@ local function OnSetUnit(self)
 				self.ftipPowerBar:SetValue(pMin)
 
 				local pType, pToken = UnitPowerType(unit)
-				local pColor = powerColors[pToken]
+				local pColor = powerColors[pToken] or powerColors[pType]
 				self.ftipPowerBar:SetStatusBarColor(pColor.r, pColor.g, pColor.b)
 				self.ftipPowerBar:Show()
 			else
@@ -478,13 +478,16 @@ local function gtSBValChange(self, value)
 
 	if(not self.text) then
 		self.text = self:CreateFontString(nil, "OVERLAY")
-		self.text:SetPoint("CENTER", GameTooltipStatusBar, 0, 0)
-		self.text:SetFont(cfg.font, 10, "THICKOUTLINE")
+		self.text:SetPoint("CENTER", self, 0, 0)
+		self.text:SetFont(cfg.font, 10, "OUTLINE")
 	end
-	--self.text:Show()
-	self.text:Hide()
-	local hp = numberize(self:GetValue())
-	self.text:SetText(hp)
+
+	if(cfg.sbText) then
+		local hp = numberize(self:GetValue())
+		self.text:SetText(hp)
+	else
+		self.text:SetText(nil)
+	end
 end
 GameTooltipStatusBar:HookScript("OnValueChanged", gtSBValChange)
 
@@ -522,6 +525,18 @@ local function UpdatePower(self, elapsed)
 		if(pMin > 0) then
 			self:SetMinMaxValues(0, pMax)
 			self:SetValue(pMin)
+
+			if(not self.text) then
+				self.text = self:CreateFontString(nil, "OVERLAY")
+				self.text:SetPoint("CENTER", self, 0, 0)
+				self.text:SetFont(cfg.font, 10, "OUTLINE")
+			end
+
+			if(cfg.sbText) then
+				self.text:SetText(numberize(pMin))
+			else
+				self.text:SetText(nil)
+			end
 		end
 	end
 end

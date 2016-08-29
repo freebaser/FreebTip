@@ -131,4 +131,3 @@ frame:SetScript("OnEvent", function(self, event, addon)
 		end
 	end)
 end)
-
