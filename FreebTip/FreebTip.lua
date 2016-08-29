@@ -25,20 +25,23 @@ local settings = {
 	sbHeight = 2,
 	sbText = false,
 
-	pBar = false,
+	pBar = false, -- unit power bar
+	pBarMANAonly = true, -- pBar must be true
 
 	factionIconSize = 30,
 	factionIconAlpha = 1,
 
-	fadeOnUnit = false,
-	combathide = false,
+	fadeOnUnit = false, -- fade from units instead of hiding instantly
+	combathide = false, -- hide just interface toolitps in combat
 	combathideALL = false,
 
-	showGRank = false,
+	showGRank = true,
 	guildText = "|cffE41F9B<%s>|r |cffA0A0A0%s|r",
 
 	showRealm = true,
 	realmText = " (*)",
+
+	auraInfo = true,
 
 	YOU = "<YOU>",
 }
@@ -378,8 +381,11 @@ local function OnSetUnit(self)
 		end
 
 		if(cfg.pBar) then
+			local _, pToken = UnitPowerType(unit)
+			local isMANA = cfg.pBarMANAonly and pToken == "MANA"
+
 			local pMin, pMax = UnitPower(unit), UnitPowerMax(unit)
-			if(pMin > 0) then
+			if((pMin > 0 and isMANA) or (pMin > 0 and not cfg.pBarMANAonly)) then
 				self.ftipPowerBar:SetMinMaxValues(0, pMax)
 				self.ftipPowerBar:SetValue(pMin)
 
@@ -711,6 +717,8 @@ end)
 --[[ Aura Tooltip info ]] --
 
 local function addAuraInfo(self, caster, spellID)
+	if(not cfg.auraInfo) then return end
+
 	if(spellID) then
 		GameTooltip:AddLine("ID: "..spellID)
 		GameTooltip:Show()
