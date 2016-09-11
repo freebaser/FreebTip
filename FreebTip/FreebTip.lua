@@ -32,7 +32,7 @@ local settings = {
 	factionIconAlpha = 1,
 
 	fadeOnUnit = false, -- fade from units instead of hiding instantly
-	combathide = false, -- hide just interface toolitps in combat
+	combathide = false, -- hide just interface tooltips in combat
 	combathideALL = false,
 
 	showGRank = true,
@@ -586,13 +586,14 @@ local function style(frame)
 	local frameName = frame and frame:GetName()
 	if not (frameName) then return end
 
+	local bdFrame = frame.BackdropFrame or frame
 	if(not frame.ftipBD) then
-		frame:SetBackdrop(cfg.backdrop)
-		frame.ftipBD = true
+		bdFrame:SetBackdrop(cfg.backdrop)
+		bdFrame.ftipBD = true
 	end
-	frame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
-	frame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
-	frame:SetScale(cfg.scale)
+
+	bdFrame:SetBackdropColor(cfg.bgcolor.r, cfg.bgcolor.g, cfg.bgcolor.b, cfg.bgcolor.t)
+	bdFrame:SetBackdropBorderColor(cfg.bdrcolor.r, cfg.bdrcolor.g, cfg.bdrcolor.b)
 
 	if(frame.GetItem) then
 		local _, item = frame:GetItem()
@@ -632,17 +633,20 @@ local function style(frame)
 		frame.ftipFontSet = true
 	end
 
-	if(frame.BattlePet and not frame.ftipBPfont) then
-		frame.Name:SetFontObject(GameTooltipHeaderText)
-		frame.BattlePet:SetFontObject(GameTooltipText)
-		frame.PetType:SetFontObject(GameTooltipText)
-		frame.Health:SetFontObject(GameTooltipText)
-		frame.Level:SetFontObject(GameTooltipText)
-		frame.Power:SetFontObject(GameTooltipText)
-		frame.Speed:SetFontObject(GameTooltipText)
-		frame.Owned:SetFontObject(GameTooltipText)
-		frame.ftipBPfont = true
+	if(frame.BattlePet) then
+		if(not frame.ftipBPfont) then
+			frame.Name:SetFontObject(GameTooltipHeaderText)
+			frame.BattlePet:SetFontObject(GameTooltipText)
+			frame.PetType:SetFontObject(GameTooltipText)
+			frame.Health:SetFontObject(GameTooltipText)
+			frame.Level:SetFontObject(GameTooltipText)
+			frame.Power:SetFontObject(GameTooltipText)
+			frame.Speed:SetFontObject(GameTooltipText)
+			frame.Owned:SetFontObject(GameTooltipText)
+			frame.ftipBPfont = true
+		end
 
+		frame.Background:Hide()
 		frame.BorderTop:Hide()
 		frame.BorderRight:Hide()
 		frame.BorderBottom:Hide()
@@ -653,9 +657,7 @@ local function style(frame)
 		frame.BorderBottomRight:Hide()
 	end
 
-	if(frame.BackdropFrame) then
-		frame.BackdropFrame:Hide()
-	end
+	frame:SetScale(cfg.scale)
 end
 ns.style = style
 
