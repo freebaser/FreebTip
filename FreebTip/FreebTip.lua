@@ -39,7 +39,9 @@ local settings = {
 	guildText = "|cffE41F9B<%s>|r |cffA0A0A0%s|r",
 
 	showRealm = true,
-	realmText = " (*)",
+	realmText = " (*)", -- if showRealm is false
+
+	playerTitle = false,
 
 	auraInfo = true,
 
@@ -159,11 +161,16 @@ end
 
 FreebTip_Cache = {}
 local Cache = FreebTip_Cache
-local function getPlayer(unit)
+local function getPlayer(unit, origName)
 	local guid = UnitGUID(unit)
 	if not (Cache[guid]) then
 		local class, _, race, _, _, name, realm = GetPlayerInfoByGUID(guid)
 		if not name then return end
+
+		if(cfg.playerTitle) then
+			name = origName:gsub("-(.*)", "")
+			ns.Debug(name)
+		end
 
 		if(realm and realm ~= "") then
 			if(cfg.showRealm) then
@@ -289,7 +296,7 @@ local function OnSetUnit(self)
 		local isPlayer = UnitIsPlayer(unit)
 
 		if(isPlayer) then
-			player, guid = getPlayer(unit)
+			player, guid = getPlayer(unit, GameTooltipTextLeft1:GetText())
 
 			local Name = player and (player.name .. (player.realm or ""))
 			if(Name) then GameTooltipTextLeft1:SetText(Name) end
