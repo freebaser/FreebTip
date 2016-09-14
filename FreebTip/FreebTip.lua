@@ -110,7 +110,7 @@ end
 
 local numberize = function(val)
 	if(val >= 1e6) then
-		return ("%.0fm"):format(val / 1e6)
+		return ("%.1fm"):format(val / 1e6)
 	elseif(val >= 1e3) then
 		return ("%.0fk"):format(val / 1e3)
 	else
