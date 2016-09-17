@@ -72,17 +72,20 @@ local function getItems(guid, data, age)
 		if(link) then
 			local ilvl = ItemUpgradeInfo:GetUpgradedItemLevel(link)
 
-			if(id == INVSLOT_OFFHAND) then
+			if(id == INVSLOT_OFFHAND or id == INVSLOT_MAINHAND) then
 				local quality = select(3, GetItemInfo(link))
 
-				if(quality == 6) then
-					link = data.items[INVSLOT_MAINHAND]
+				if(quality == 6 and ilvl == 750) then
+					local slot = (id == INVSLOT_OFFHAND) and INVSLOT_MAINHAND or INVSLOT_OFFHAND
+					link = data.items[slot]
 					ilvl = ItemUpgradeInfo:GetUpgradedItemLevel(link)
 				end
 			end
 
-			numItems = numItems + 1
-			itemsScore = itemsScore + ilvl
+			if(ilvl) then
+				numItems = numItems + 1
+				itemsScore = itemsScore + ilvl
+			end
 		end
 	end
 
