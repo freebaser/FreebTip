@@ -69,6 +69,10 @@ local function getItems(guid, data, age)
 	for i, id in next, slotIDs do
 		local link = data.items[id]
 
+		if(id == INVSLOT_OFFHAND and not link) then
+			link = data.items[INVSLOT_MAINHAND]
+		end
+
 		if(link) then
 			local ilvl = ItemUpgradeInfo:GetUpgradedItemLevel(link)
 

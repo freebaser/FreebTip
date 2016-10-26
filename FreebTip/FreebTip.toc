@@ -10,3 +10,4 @@ anchor.lua
 settings.lua
 FreebTip.lua
 multiItem.lua
+hover.lua
