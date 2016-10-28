@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: FreebTip
 ## Notes: Custom GameTooltip
 ## Version: @project-version@

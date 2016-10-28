@@ -5,7 +5,7 @@ local SPECIALIZATION = SPECIALIZATION
 local GetMouseFocus = GetMouseFocus
 local GameTooltip = GameTooltip
 local GetTime = GetTime
-local UnitGUID = UnitGUID
+local UnitExists, UnitGUID = UnitExists, UnitGUID
 
 local LibInspect = LibStub("LibInspect")
 
@@ -19,8 +19,13 @@ FreebTipSpec_cache = cache
 
 local function getUnit()
 	local mFocus = GetMouseFocus()
-	local unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit")) or "mouseover"
-	return unit
+
+	if(mFocus) then
+		local hasAttr = mFocus.GetAttribute
+		unit = mFocus.unit or (hasAttr and mFocus:GetAttribute("unit"))
+	end
+
+	return (unit or "mouseover")
 end
 
 local function ShowSpec(spec)
@@ -38,8 +43,8 @@ specUpdate:SetScript("OnUpdate", function(self, elapsed)
 	if(self.update < .08) then return end
 
 	local unit = getUnit()
-	local guid = UnitGUID(unit)
-	local cacheGUID = cache[guid]
+	local guid = UnitExists(unit) and UnitGUID(unit)
+	local cacheGUID = guid and cache[guid]
 	if(cacheGUID) then
 		ShowSpec(cacheGUID.spec)
 	end

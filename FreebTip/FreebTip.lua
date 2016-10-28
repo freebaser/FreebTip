@@ -153,10 +153,14 @@ local function getUnit(self)
 	local _, unit = self and self:GetUnit()
 	if(not unit) then
 		local mFocus = GetMouseFocus()
-		unit = mFocus and (mFocus.unit or mFocus:GetAttribute("unit")) or "mouseover"
+
+		if(mFocus) then
+			local hasAttr = mFocus.GetAttribute
+			unit = mFocus.unit or (hasAttr and mFocus:GetAttribute("unit"))
+		end
 	end
 
-	return unit
+	return (unit or "mouseover")
 end
 
 FreebTip_Cache = {}
