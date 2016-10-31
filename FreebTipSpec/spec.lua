@@ -21,8 +21,7 @@ local function getUnit()
 	local mFocus = GetMouseFocus()
 
 	if(mFocus) then
-		local hasAttr = mFocus.GetAttribute
-		unit = mFocus.unit or (hasAttr and mFocus:GetAttribute("unit"))
+		unit = mFocus.unit or (mFocus.GetAttribute and mFocus:GetAttribute("unit"))
 	end
 
 	return (unit or "mouseover")

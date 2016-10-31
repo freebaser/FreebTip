@@ -36,7 +36,7 @@ local function CreateTip(link)
 	tip:SetPoint("BOTTOM", 0, 80)
 	tip:SetFrameStrata"TOOLTIP"
 	tip:SetSize(128,64)
-	tip:SetPadding(16)
+	tip:SetPadding(16, 0)
 	tip:EnableMouse(true)
 	tip:SetMovable(true)
 	tip:SetToplevel(true)
