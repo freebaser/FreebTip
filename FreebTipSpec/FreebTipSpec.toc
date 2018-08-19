@@ -1,4 +1,4 @@
-## Interface: 70100
+## Interface: 80000
 ## Title: FreebTipSpec
 ## Notes: Specialization Info for the GameTooltip
 ## Version: @project-version@

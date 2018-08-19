@@ -1,0 +1,12 @@
+lightweight tag d706b0837bfce0d842f7969257fe14d43dc47745 0.3.3
+Author:	scotepi <github@scotepi.net>
+Date:	Tue Jul 31 19:19:34 2018 -0400
+
+commit d706b0837bfce0d842f7969257fe14d43dc47745
+Author: scotepi <github@scotepi.net>
+Date:   Tue Jul 31 19:19:34 2018 -0400
+
+    Ignore Libs
+    
+    Ignore libs in the dev version
+

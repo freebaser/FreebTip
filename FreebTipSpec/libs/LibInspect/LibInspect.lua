@@ -453,7 +453,9 @@ end
 
 function lib:RunHooks(what, guid)
     for addon,callback in pairs(self.hooks[what]) do
-        callback(guid, self.cache[guid].data, self:GetAge(self.cache[guid].time));
+        if callback then
+            callback(guid, self.cache[guid].data, self:GetAge(self.cache[guid].time));
+        end
     end
 end
 
