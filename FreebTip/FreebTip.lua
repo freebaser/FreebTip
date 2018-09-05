@@ -15,8 +15,8 @@ local settings = {
 		tile = false,
 		tileEdge = true,
 		tileSize = 16,
-		edgeSize = 2,
-		insets = { left = 2, right = 2, top = 2, bottom = 2 },
+		edgeSize = 3,
+		insets = { left = 3, right = 3, top = 3, bottom = 3 },
 	
 		backdropBorderColor = CreateColor(0, 0, 0),
 		backdropColor = CreateColor(0.05, 0.05, 0.05, .95),
@@ -29,7 +29,7 @@ local settings = {
 	sbHeight = 2,
 	sbText = false,
 
-	factionIconSize = 32,
+	factionIconSize = 30,
 	factionIconAlpha = 1,
 
 	fadeOnUnit = true, -- fade from units instead of hiding instantly
@@ -277,6 +277,11 @@ local function trimLvline(str)
 	return trimStr[str]
 end
 
+local classification = {
+	rare = ("|cffCC00FF %s|r"):format(ITEM_QUALITY3_DESC),
+	rareelite = ("|cffCC00FF %s|r"):format(ITEM_QUALITY3_DESC),
+}
+
 -------------------------------------------------------------------------------
 --[[ GameTooltip HookScripts ]] --
 
@@ -355,7 +360,13 @@ local function OnSetUnit(self)
 			lvltxt = lvltxt:gsub("%a+%s%a+", trimLvline)
 			lvltxt = lvltxt:gsub("%b()", trimLvline)
 			lvltxt = lvltxt:gsub("^[0-9]+", getLvldiff)
-			levelLine:SetText(lvltxt:trim())
+
+			local classify = UnitClassification(unit)
+			if(classify and classification[classify]) then
+				levelLine:SetFormattedText("%s%s", lvltxt:trim(), classification[classify])
+			else
+				levelLine:SetText(lvltxt:trim())
+			end
 		end
 
 		local dead = UnitIsDeadOrGhost(unit)
@@ -509,20 +520,14 @@ end
 
 local function sbdbc(...)
 	local self = ...
-	local frameName = self and self:GetName()
-	if(not frameName) then return end
 
 	if(self.GetItem) then
 		local _, item = self:GetItem()
 		if(item) then
 			local quality = select(3, GetItemInfo(item))
 			if(quality) then
-				itemUpdate[frameName] = nil
-
 				local r, g, b = GetItemQualityColor(quality)
 				return self:_SetBackdropBorderColor(r, g, b)
-			else
-				itemUpdate[frameName] = true
 			end
 		end
 	end
@@ -536,9 +541,6 @@ local function sbdc(...)
 end
 
 local function tip_style(frame)
-	local frameName = frame and frame:GetName()
-	if(not frameName) then return end
-
 	if(not frame.freebBD) then
 		frame._SetBackdrop = _SetBackdrop
 		frame._SetBackdropBorderColor = _SetBackdropBorderColor
@@ -556,6 +558,9 @@ local function tip_style(frame)
 	frame:SetBackdropBorderColor()
 	frame:SetBackdropColor()
 	frame:SetScale(cfg.scale)
+
+	local frameName = frame and frame:GetName()
+	if(not frameName) then return end
 
 	if(frame.hasMoney and frame.numMoneyFrames ~= frame.ftipNumMFrames) then
 		for i=1, frame.numMoneyFrames do
@@ -592,9 +597,11 @@ end
 
 local freebtipFrame = CreateFrame("Frame")
 freebtipFrame:RegisterEvent("ADDON_LOADED")
-freebtipFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 freebtipFrame:SetScript("OnEvent", function(frame, event, arg1)
 	if(event == "ADDON_LOADED") then
+		QuestScrollFrame.StoryTooltip:HookScript("OnShow", hook_style)
+		QuestScrollFrame.WarCampaignTooltip:HookScript("OnShow", hook_style)
+
 		local function hook(tooltip)
 			tooltip:HookScript("OnShow", hook_style)
 		end
@@ -612,13 +619,6 @@ freebtipFrame:SetScript("OnEvent", function(frame, event, arg1)
 				tooltip.shopping = true
 			end
 		end
-	--[[elseif(event == "GET_ITEM_INFO_RECEIVED") then
-		for tip in next, itemUpdate do
-			local tooltip = _G[tip]
-			if(tooltip and tooltip:IsShown()) then
-				tip_style(tooltip)
-			end
-		end]]
 	end
 end)
 
