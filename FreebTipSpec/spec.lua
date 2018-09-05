@@ -7,13 +7,13 @@ local GameTooltip = GameTooltip
 local GetTime = GetTime
 local UnitExists, UnitGUID = UnitExists, UnitGUID
 
-local LibInspect = LibStub("LibInspect")
+local LibInspect = LibStub('LibInspect')
 
 local maxage = 900 --number of secs to cache each player
 LibInspect:SetMaxAge(maxage)
 
 local cache = {
-	specText = "|cffFFFFFF%s|r"
+	specText = '|cffFFFFFF%s|r'
 }
 FreebTipSpec_cache = cache
 
@@ -21,10 +21,10 @@ local function getUnit()
 	local mFocus = GetMouseFocus()
 
 	if(mFocus) then
-		unit = mFocus.unit or (mFocus.GetAttribute and mFocus:GetAttribute("unit"))
+		unit = mFocus.unit or (mFocus.GetAttribute and mFocus:GetAttribute('unit'))
 	end
 
-	return (unit or "mouseover")
+	return (unit or 'mouseover')
 end
 
 local function ShowSpec(spec)
@@ -36,8 +36,8 @@ local function ShowSpec(spec)
 	end
 end
 
-local specUpdate = CreateFrame"Frame"
-specUpdate:SetScript("OnUpdate", function(self, elapsed)
+local specUpdate = CreateFrame'Frame'
+specUpdate:SetScript('OnUpdate', function(self, elapsed)
 	self.update = (self.update or 0) + elapsed
 	if(self.update < .08) then return end
 
@@ -53,7 +53,7 @@ specUpdate:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 local function getTalents(guid, data, age)
-	if((not guid) or (data and type(data.talents) ~= "table")) then return end
+	if((not guid) or (data and type(data.talents) ~= 'table')) then return end
 
 	local cacheGUID = cache[guid]
 	if(cacheGUID and cacheGUID.time > (GetTime()-maxage)) then
@@ -66,16 +66,16 @@ local function getTalents(guid, data, age)
 		specUpdate:Show()
 	end
 end
-LibInspect:AddHook(ADDON_NAME, "talents", function(...) getTalents(...) end)
+LibInspect:AddHook(ADDON_NAME, 'talents', function(...) getTalents(...) end)
 
 local function OnSetUnit(self)
 	local unit = getUnit()
-	local caninspect = LibInspect:RequestData("items", unit)
+	local caninspect = LibInspect:RequestData('items', unit)
 	specUpdate:Show()
 end
-GameTooltip:HookScript("OnTooltipSetUnit", OnSetUnit)
+GameTooltip:HookScript('OnTooltipSetUnit', OnSetUnit)
 
 local tipCleared = function(self)
 	self.freebtipSpecSet = false
 end
-GameTooltip:HookScript("OnTooltipCleared", tipCleared)
+GameTooltip:HookScript('OnTooltipCleared', tipCleared)

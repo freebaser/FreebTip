@@ -16,18 +16,18 @@ local function tonumber_all(v, ...)
 end
 
 local function ShowBattlePetTooltip(frame, pre, ...)
-	GameTooltip:SetOwner(frame, "ANCHOR_TOPRIGHT")
+	GameTooltip:SetOwner(frame, 'ANCHOR_TOPRIGHT')
 	BattlePetToolTip_Show(tonumber_all(...))
 end
 
 local function OnHyperlinkEnter(frame, link, ...)
-	local linktype = link:match("^([^:]+)")
+	local linktype = link:match('^([^:]+)')
 	if linktype and linktypes[linktype] then
-		GameTooltip:SetOwner(frame, "ANCHOR_TOPRIGHT")
+		GameTooltip:SetOwner(frame, 'ANCHOR_TOPRIGHT')
 		GameTooltip:SetHyperlink(link)
 		GameTooltip:Show()
 	elseif linktype and linktype == 'battlepet' then
-		ShowBattlePetTooltip(frame, strsplit(":", link))
+		ShowBattlePetTooltip(frame, strsplit(':', link))
 	end
 
 	if orig1[frame] then return orig1[frame](frame, link, ...) end
@@ -40,10 +40,10 @@ local function OnHyperlinkLeave(frame, ...)
 end
 
 for i=1, NUM_CHAT_WINDOWS do
-	local frame = _G["ChatFrame"..i]
-	orig1[frame] = frame:GetScript("OnHyperlinkEnter")
-	frame:SetScript("OnHyperlinkEnter", OnHyperlinkEnter)
+	local frame = _G['ChatFrame'..i]
+	orig1[frame] = frame:GetScript('OnHyperlinkEnter')
+	frame:SetScript('OnHyperlinkEnter', OnHyperlinkEnter)
 
-	orig2[frame] = frame:GetScript("OnHyperlinkLeave")
-	frame:SetScript("OnHyperlinkLeave", OnHyperlinkLeave)
+	orig2[frame] = frame:GetScript('OnHyperlinkLeave')
+	frame:SetScript('OnHyperlinkLeave', OnHyperlinkLeave)
 end
